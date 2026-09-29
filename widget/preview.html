@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小工具預覽 — Checkly</title>
+<!--
+  桌面小工具的版面預覽。
+  這頁是「照著 todo-widget.js 的數字重畫一次」，用來在電腦上先看清楚間距與截斷，
+  不是小工具的實作。改了 todo-widget.js 的尺寸，這裡要一起改（兩邊的常數都標了同樣的名字）。
+
+  網址可以帶 ?feed=<小工具網址> 直接看真實資料；不帶就用內建的示範資料。
+-->
+<style>
+:root{
+  --bg:#F8F7F2; --panel:#FFFEFC; --line:#DCD9CE; --ink:#133E50; --ink2:#3D6070; --muted:#5C737D;
+  --w-bg:#FBFAF6; --w-card:rgba(19,62,80,.045); --w-ink:#133E50; --w-ink2:#3D6070;
+  --w-muted:#5C737D; --w-line:#DCD9CE; --w-accent:#2A7574; --w-onacc:#FDFCF7;
+  --w-hot:#B9660F; --w-danger:#A83F17; --w-done:#2F6B41;
+  --font:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+}
+body.dark{
+  --bg:#111214; --panel:#181A1D; --line:#34383D; --ink:#ECEEF1; --ink2:#B6BBC1; --muted:#8A9097;
+  --w-bg:#17191C; --w-card:rgba(255,255,255,.055); --w-ink:#ECEEF1; --w-ink2:#B6BBC1;
+  --w-muted:#8A9097; --w-line:#34383D; --w-accent:#5BA7A6; --w-onacc:#111214;
+  --w-hot:#F4A14F; --w-danger:#E97552; --w-done:#B9E3B3;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:var(--bg);color:var(--ink);font-family:var(--font);
+     -webkit-font-smoothing:antialiased}
+h1{font-size:19px;margin:0 0 4px}
+.lead{font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.7}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 22px}
+.bar input{flex:1;min-width:260px;height:34px;padding:0 10px;font:13px/1 var(--font);
+  border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}
+.bar button,.bar select{height:34px;padding:0 13px;font:13px/1 var(--font);cursor:pointer;
+  border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}
+.stage{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+.slot{display:flex;flex-direction:column;gap:8px}
+.slot > span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.frame{transform-origin:top left}
+
+/* ---- 以下的數字必須跟 todo-widget.js 對齊 ---- */
+.wg{background:var(--w-bg);border-radius:22px;padding:13px;display:flex;flex-direction:column;
+    overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.14);font-family:var(--font)}
+.wg.lock{background:rgba(120,120,128,.28);border-radius:14px;padding:2px 6px;color:#fff;
+         backdrop-filter:blur(8px)}
+.hd{display:flex;align-items:center;gap:0}
+.hd .mo{font-size:14px;font-weight:700;color:var(--w-ink)}
+.hd .tag{font-size:11px;color:var(--w-muted);margin-left:6px}
+.hd .sp{flex:1}
+.hd .st{font-size:11px;font-weight:500;color:var(--w-ink2)}
+.hd .st.ok{color:var(--w-done)}
+.strip{display:flex;gap:2px;align-items:flex-start}
+.col{display:flex;flex-direction:column;align-items:center;min-width:0}
+.col .wd{font-size:9px;color:var(--w-muted);line-height:1.2}
+.col .wd.t{color:var(--w-accent)}
+.col .pill{height:17px;border-radius:8.5px;display:flex;align-items:center;justify-content:center;
+           margin-top:1px;font-size:12px;color:var(--w-ink)}
+.col .pill.today{background:var(--w-accent);color:var(--w-onacc);font-weight:700}
+.col .pill.sel{background:var(--w-card);font-weight:700}
+.chips{display:flex;flex-direction:column;gap:2px;margin-top:3px;width:100%}
+.chip{height:13px;border-radius:3.5px;padding:0 2px;display:flex;align-items:center;
+      font-weight:500;white-space:nowrap;overflow:hidden}
+.plus{font-size:8px;color:var(--w-muted);margin-top:1px}
+.rule{height:1px;background:var(--w-line)}
+.cards{display:flex;flex-direction:column;gap:5px}
+.cd{height:26px;display:flex;align-items:center}
+.cd .bar2{width:3px;height:20px;border-radius:1.5px;flex:none}
+.cd .tm{font-size:11px;font-weight:500;color:var(--w-ink2);margin-left:8px;white-space:nowrap}
+.cd .ti{font-size:13px;color:var(--w-ink);margin-left:7px;white-space:nowrap;overflow:hidden;
+        text-overflow:ellipsis}
+.cd .rt{margin-left:auto;font-size:10px;color:var(--w-muted);padding-left:6px;white-space:nowrap}
+.cd.done .ti,.cd.done .tm{color:var(--w-muted)}
+.cd .rt.ck{font-size:12px;font-weight:700;color:var(--w-done)}
+.none{font-size:12px;color:var(--w-muted)}
+.more{font-size:11px;color:var(--w-muted)}
+.ft{display:flex;align-items:center;font-size:9px;color:var(--w-muted);margin-top:auto;padding-top:6px}
+.ft .late{font-size:10px;font-weight:500;color:var(--w-danger)}
+.ft .sp{flex:1}
+.sm .d{font-size:22px;font-weight:700;color:var(--w-accent)}
+.sm .w{font-size:11px;font-weight:500;color:var(--w-muted);margin-left:5px}
+.sm .r{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--w-ink)}
+.lk b{font-size:12px;display:block}
+.lk span{font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<h1>小工具預覽</h1>
+<p class="lead">照 <code>widget/todo-widget.js</code> 的尺寸在電腦上重畫一次，方便看間距與文字截斷。<br>
+貼上小工具網址就會抓真實資料；留空用示範資料。</p>
+
+<div class="bar">
+  <input id="feed" placeholder="https://xxxx.supabase.co/functions/v1/widget?t=..."
+         autocapitalize="off" autocorrect="off" spellcheck="false">
+  <button id="go">載入</button>
+  <select id="dev">
+    <option value="390">iPhone 12–15（390pt）</option>
+    <option value="393">iPhone 15/16 Pro（393pt）</option>
+    <option value="430">Pro Max（430pt）</option>
+    <option value="375">SE / mini（375pt）</option>
+  </select>
+  <select id="zoom">
+    <option value="1">100%</option>
+    <option value="1.5" selected>150%</option>
+    <option value="2">200%</option>
+  </select>
+  <button id="thm">深色</button>
+  <button id="mode">看鎖定畫面桌布</button>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<script>
+/* ---- 尺寸表：與 todo-widget.js 的 WIDGET_SIZES 相同 ---- */
+const SIZES = {
+  375:{small:155, medium:329, large:329, largeH:345},
+  390:{small:158, medium:338, large:338, largeH:354},
+  393:{small:158, medium:338, large:338, largeH:354},
+  430:{small:170, medium:364, large:364, largeH:382}
+};
+const WD = ['日','一','二','三','四','五','六'];
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d]=String(s).split('-').map(Number); return new Date(y,(m||1)-1,d||1); };
+const addDays = (s,n)=>{ const d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const dow = s => parseYmd(s).getDay();
+const weekOf = ds => Array.from({length:7},(_,i)=>addDays(addDays(ds,-dow(ds)),i));
+
+/* ---- 深色的類別色換算：與 App／小工具同一套 ---- */
+function liftForDark(hex){
+  const h=String(hex||'').replace('#',''); const n=h.length===3?h.split('').map(c=>c+c).join(''):h;
+  let r=(parseInt(n.slice(0,2),16)||0)/255,g=(parseInt(n.slice(2,4),16)||0)/255,b=(parseInt(n.slice(4,6),16)||0)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),df=mx-mn; let hu=0;
+  if(df){ if(mx===r)hu=((g-b)/df+(g<b?6:0)); else if(mx===g)hu=(b-r)/df+2; else hu=(r-g)/df+4; hu/=6; }
+  let l=(mx+mn)/2, sa=df?df/(1-Math.abs(2*l-1)):0;
+  if(l>=.62) return '#'+n;
+  l=.52+(l/.62)*.28; sa=Math.min(sa,.62);
+  const q=l<.5?l*(1+sa):l+sa-l*sa, pp=2*l-q;
+  const ch=t=>{ t=(t+1)%1; if(t<1/6)return pp+(q-pp)*6*t; if(t<1/2)return q;
+                if(t<2/3)return pp+(q-pp)*(2/3-t)*6; return pp; };
+  const hx=v=>Math.round(Math.min(1,Math.max(0,v))*255).toString(16).padStart(2,'0');
+  return '#'+hx(ch(hu+1/3))+hx(ch(hu))+hx(ch(hu-1/3));
+}
+const isDark = () => document.body.classList.contains('dark');
+const cat = h => isDark() ? liftForDark(h||'#8F8368') : (h||'#8F8368');
+function rgba(hex,a){
+  const h=String(hex||'').replace('#',''); const n=h.length===3?h.split('').map(c=>c+c).join(''):h;
+  return `rgba(${parseInt(n.slice(0,2),16)||0},${parseInt(n.slice(2,4),16)||0},${parseInt(n.slice(4,6),16)||0},${a})`;
+}
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- 示範資料：故意放長標題與滿格的日子，看得出會不會爆版 ---- */
+function demo(){
+  const T = ymd(new Date());
+  const mk = (k,t,w,p,extra={}) => ({k,i:Math.random().toString(36).slice(2),t,w,p,...extra});
+  const days = {};
+  const P = {work:'#2A7574', life:'#C87A22', study:'#4C8C5B', fam:'#1F5F7E'};
+  days[addDays(T,-dow(T)+0)] = [mk('s','打掃房間','09:30',P.life), mk('s','練習英語聽力','14:30',P.study)];
+  days[addDays(T,-dow(T)+1)] = [mk('s','辦公室工作','09:00',P.work), mk('s','團隊專案會議','13:30',P.work), mk('s','晚上學英語','19:30',P.study)];
+  days[addDays(T,-dow(T)+2)] = [mk('s','拍攝 TikTok 影片','14:00',P.life), mk('s','與曉晴喝下午茶','18:30',P.life), mk('t','獨自閱讀一小時','20:30',P.study)];
+  days[addDays(T,-dow(T)+3)] = [mk('s','撰寫新腳本','13:30',P.work), mk('s','線上學英語','18:30',P.study), mk('s','與妹妹一起吃飯','20:00',P.fam)];
+  days[addDays(T,-dow(T)+4)] = [mk('s','優化社群貼文','09:00',P.work,{d:true}), mk('s','練習彈鋼琴','14:00',P.study), mk('s','與家豪散步','18:00',P.life)];
+  days[addDays(T,-dow(T)+5)] = [mk('s','完成季度報告','09:00',P.work,{m:1}), mk('s','剪輯 TikTok','13:30',P.life)];
+  days[addDays(T,-dow(T)+6)] = [
+    mk('s','與詩涵喝咖啡','09:30',P.life,{d:true,s:[2,2]}),
+    mk('e','室內攀岩','14:00',P.life),
+    mk('e','參觀畫展','16:30',P.work,{m:1}),
+    mk('t','交年度考核表','',P.work,{s:[1,3]}),
+    mk('s','睡前伸展','22:00',P.study),
+    mk('s','記帳','',P.fam)
+  ];
+  return { v:1, today:T, days, late:[{t:'補請領收據'}],
+           app:'https://jeremyl861225.github.io/checkly/',
+           updated_at:new Date().toISOString() };
+}
+
+/* ---- 畫 ---- */
+function weekHTML(d, S, fam){
+  const PAD = 13;
+  const inner = S.w - PAD*2;
+  const colW = Math.floor((inner - 6*2)/7);
+  const rows = fam==='large' ? 3 : 2;
+  const today = d.today, sel = today;
+  const items = (d.days && d.days[sel]) || [];
+  const left = items.filter(x=>!x.d).length;
+  const max = fam==='large' ? 5 : 2;
+
+  const cols = weekOf(sel).map(ds=>{
+    const its = (d.days && d.days[ds]) || [];
+    const isT = ds===today;
+    const chips = its.slice(0,rows).map(it=>{
+      const c = cat(it.p);
+      const fs = shrink(it.t, 7.5, colW - 4, 0.7);
+      return `<div class="chip" style="background:${rgba(c, it.d?.10:.20)};
+        color:${it.d?'var(--w-muted)':c};font-size:${fs.toFixed(2)}px">${esc(it.t)}</div>`;
+    }).join('');
+    const plus = its.length>rows ? `<div class="plus">＋${its.length-rows}</div>` : '';
+    return `<div class="col" style="width:${colW}px">
+      <div class="wd${isT?' t':''}">${WD[dow(ds)]}</div>
+      <div class="pill${isT?' today':''}" style="width:${colW-10}px">${Number(ds.slice(8,10))}</div>
+      <div class="chips">${chips}</div>${plus}</div>`;
+  }).join('');
+
+  const cards = items.slice(0,max).map(it=>{
+    const c = cat(it.p);
+    const rt = it.d ? '<span class="rt ck">✓</span>'
+      : it.s ? `<span class="rt">${it.s[0]}/${it.s[1]}</span>`
+      : it.n ? `<span class="rt">${it.x}/${it.n} 天</span>` : '';
+    return `<div class="cd${it.d?' done':''}">
+      <div class="bar2" style="background:${it.d?rgba(c,.35):c}"></div>
+      ${it.w?`<span class="tm">${esc(it.w)}</span>`:''}
+      <span class="ti" style="font-size:${shrink((it.m?'★ ':'')+it.t, 13, S.w-90, 0.72).toFixed(2)}px">${it.m?'★ ':''}${esc(it.t)}</span>${rt}</div>`;
+  }).join('');
+  const more = items.length>max ? `<div class="more">還有 ${items.length-max} 件</div>` : '';
+  const late = (d.late||[]).length;
+
+  return `<div class="wg" style="width:${S.w}px;height:${S.h}px">
+    <div class="hd"><span class="mo">${Number(sel.slice(5,7))} 月</span>
+      <span class="tag">今天</span><span class="sp"></span>
+      <span class="st${left?'':' ok'}">${left?left+' 件未完成':(items.length?'全部完成':'沒有事項')}</span></div>
+    <div style="height:9px"></div>
+    <div class="strip">${cols}</div>
+    <div style="height:10px"></div><div class="rule"></div><div style="height:8px"></div>
+    <div class="cards">${items.length?cards:'<div class="none">這天沒有安排</div>'}${more}</div>
+    <div class="ft">${late?`<span class="late">逾期 ${late} 件</span>`:''}<span class="sp"></span>
+      <span>更新於 ${pad(new Date().getHours())}:${pad(new Date().getMinutes())}</span></div>
+  </div>`;
+}
+
+function smallHTML(d, S){
+  const sel = d.today, items = (d.days && d.days[sel]) || [];
+  const rows = items.slice(0,3).map(it=>{
+    const c = cat(it.p);
+    return `<div class="r"><span class="bar2" style="width:3px;height:16px;border-radius:1.5px;background:${it.d?rgba(c,.35):c};display:inline-block"></span>
+      <span style="overflow:hidden;white-space:nowrap;font-size:${shrink((it.w?it.w+' ':'')+it.t, 10.5, S.s-32, 0.7).toFixed(2)}px">${esc((it.w?it.w+' ':'')+it.t)}</span></div>`;
+  }).join('');
+  return `<div class="wg sm" style="width:${S.s}px;height:${S.s}px">
+    <div style="display:flex;align-items:center"><span class="d">${Number(sel.slice(8,10))}</span>
+      <span class="w">週${WD[dow(sel)]}</span></div>
+    <div style="height:7px"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">${items.length?rows:'<div class="none">沒有安排</div>'}</div>
+    ${items.length>3?`<div class="more" style="margin-top:4px">還有 ${items.length-3} 件</div>`:''}
+  </div>`;
+}
+
+function lockHTML(d){
+  const sel = d.today, items = (d.days && d.days[sel]) || [];
+  const open = items.filter(x=>!x.d);
+  const list = (open.length?open:items).slice(0,2)
+    .map(it=>`<span>${esc((it.w?it.w+' ':'')+it.t)}</span>`).join('');
+  return `<div class="wg lock" style="width:160px;height:72px;justify-content:center">
+    <div class="lk"><b>${open.length?'待辦 '+open.length+' 件':'今天都完成了'}</b>${list}</div></div>`;
+}
+
+/* ---- 鎖定畫面桌布 ----
+   版面計算不在這裡，是去抓 todo-wallpaper.js 裡的 wallpaperLayout()。
+   那支檔案最上層只宣告函式、不呼叫任何 Scriptable API，所以瀏覽器跑得動，
+   兩邊也就不會各畫各的。 */
+const PHONES = {
+  375:{w:375,h:812,name:'iPhone SE3 / mini'},
+  390:{w:390,h:844,name:'iPhone 12–15'},
+  393:{w:393,h:852,name:'iPhone 15/16 Pro'},
+  430:{w:430,h:932,name:'Pro Max'}
+};
+let WALL = null;
+async function wallpaperMod(){
+  if(WALL) return WALL;
+  const src = await fetch('todo-wallpaper.js?v=' + Date.now()).then(r=>r.text());
+  WALL = new Function(src + '\n; return {wallpaperLayout, textW, fit, wrapLines};')();
+  return WALL;
+}
+const wallpaperFn = async () => (await wallpaperMod()).wallpaperLayout;
+
+/* Scriptable 放不下文字時是「把字縮小」不是截斷（minimumScaleFactor），
+   CSS 沒有對應的東西，所以這裡自己算一次，預覽才跟手機上一致。 */
+function shrink(s, size, maxW, msf){
+  if(!WALL) return size;
+  const w = WALL.textW(s, size);
+  return w <= maxW ? size : Math.max(size * msf, size * maxW / w);
+}
+function rgbaHex(hex, a){
+  if(a === undefined || a === 1) return hex;
+  return rgba(hex, a);
+}
+async function drawWallpaper(){
+  const sw = Number(document.getElementById('dev').value);
+  const ph = PHONES[sw];
+  const z  = Number(document.getElementById('zoom').value) * 0.6;   // 整台手機，縮一點才看得完
+  const fn = await wallpaperFn();
+  const L  = fn(DATA, ph.w, ph.h, isDark());
+
+  const bg = `linear-gradient(${L.bg.top}, ${L.bg.bottom})`;
+  const els = L.ops.map(o => {
+    if(o.op === 'rect'){
+      return `<div style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;
+        height:${o.h}px;border-radius:${o.r||0}px;background:${rgbaHex(o.fill, o.alpha)}"></div>`;
+    }
+    const wt = o.weight === 'bold' ? 700 : o.weight === 'semibold' ? 600
+             : o.weight === 'medium' ? 500 : 400;
+    return `<div style="position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;
+      height:${o.h}px;line-height:${o.h}px;font-size:${o.size}px;font-weight:${wt};
+      color:${o.color};text-align:${o.align};white-space:nowrap;overflow:hidden">${esc(o.s)}</div>`;
+  }).join('');
+
+  const clock = `<div style="position:absolute;left:0;top:${Math.round(ph.h*0.075)}px;width:100%;
+      text-align:center;color:${isDark()?'#fff':'#20323a'};opacity:.92;font-weight:300">
+      <div style="font-size:15px;letter-spacing:.02em">${parseYmd(DATA.today).toLocaleDateString('zh-TW',{weekday:'long',month:'long',day:'numeric'})}</div>
+      <div style="font-size:74px;line-height:1.05;font-weight:500">09:41</div></div>`;
+
+  document.getElementById('stage').innerHTML =
+    `<div class="slot"><span>鎖定畫面桌布 ${ph.name} ${ph.w}×${ph.h}pt</span>
+      <div class="frame" style="transform:scale(${z});width:${ph.w*z}px;height:${ph.h*z}px">
+        <div style="position:relative;width:${ph.w}px;height:${ph.h}px;background:${bg};
+             border-radius:44px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);
+             font-family:var(--font)">
+          ${clock}${els}
+        </div></div></div>`;
+}
+
+let MODE = 'widget';
+let DATA = demo();
+function draw(){
+  if(MODE === 'wall'){ drawWallpaper(); return; }
+  const sw = Number(document.getElementById('dev').value);
+  const t = SIZES[sw];
+  const z = Number(document.getElementById('zoom').value);
+  const L = { w:t.large-2, h:t.largeH, s:t.small };
+  const M = { w:t.medium-2, h:155 };
+  const wrap = (label, html, w, h) =>
+    `<div class="slot"><span>${label}</span>
+      <div class="frame" style="transform:scale(${z});width:${w*z}px;height:${h*z}px">${html}</div></div>`;
+  document.getElementById('stage').innerHTML =
+    wrap('大型 Large ' + L.w + '×' + L.h, weekHTML(DATA, L, 'large'), L.w, L.h) +
+    wrap('中型 Medium ' + M.w + '×' + M.h, weekHTML(DATA, M, 'medium'), M.w, M.h) +
+    wrap('小型 Small ' + L.s + '×' + L.s, smallHTML(DATA, L), L.s, L.s) +
+    wrap('鎖定畫面 160×72', lockHTML(DATA), 160, 72);
+}
+
+document.getElementById('go').onclick = async ()=>{
+  const u = document.getElementById('feed').value.trim();
+  if(!u){ DATA = demo(); draw(); return; }
+  try{
+    const r = await fetch(u, {cache:'no-store'});
+    const j = await r.json();
+    if(j.error){ alert('讀取失敗：' + j.error); return; }
+    DATA = j; draw();
+  }catch(e){ alert('讀取失敗：' + e.message); }
+};
+document.getElementById('mode').onclick = ()=>{
+  MODE = MODE === 'wall' ? 'widget' : 'wall';
+  document.getElementById('mode').textContent = MODE === 'wall' ? '看桌面小工具' : '看鎖定畫面桌布';
+  draw();
+};
+document.getElementById('dev').onchange = draw;
+document.getElementById('zoom').onchange = draw;
+document.getElementById('thm').onclick = ()=>{
+  document.body.classList.toggle('dark');
+  document.getElementById('thm').textContent = isDark() ? '淺色' : '深色';
+  draw();
+};
+(async ()=>{
+  await wallpaperMod();                 // 字寬估算要先就位，第一次畫才準
+  const qf = new URLSearchParams(location.search).get('feed');
+  if(qf){ document.getElementById('feed').value = qf; document.getElementById('go').click(); }
+  else draw();
+})();
+</script>
+</body>
+</html>
