@@ -340,6 +340,8 @@ main{padding:var(--s-6) 0 var(--s-9)}
 }
 .item.ended .cadence i.on{background:var(--tick)}
 .cadrow{display:block}
+/* 未完成頁可能很長（過去沒勾的全部列出）：畫面外的卡片跳過版面與繪製，高度先用估的（看過之後瀏覽器會記住實際高度） */
+#pend-body .item{content-visibility:auto;contain-intrinsic-size:auto 78px}
 /* 月曆／清單的種類記號（• ○ × ──）只有打字機主題畫，見 html[data-skin="typewriter"] .sym */
 .sym{display:none}
 
@@ -1321,10 +1323,12 @@ html[data-skin="typewriter"] .sym-evt::before{content:"○"}
 html[data-skin="typewriter"] .sym-tsk::before{content:"×"}
 html[data-skin="typewriter"] .sym-bar::before{content:"──"}
 html[data-skin="typewriter"] .drow.done .sym{opacity:.16}
-/* 當日面板的重大事件：星號改成 ▮，跟格子裡、圖例上的記號同一個形狀 */
-html[data-skin="typewriter"] #p-cal .drow .star{width:.34em;height:.9em;background:var(--ink);vertical-align:-.1em;margin-right:.7ch}
-html[data-skin="typewriter"] #p-cal .drow .star svg{display:none}
-html[data-skin="typewriter"] #p-cal .drow.done .star{opacity:.16}
+/* 重大事件的標記（標題前、篩選列的「重大」、詳細內容的徽章…）：星號改成 ▮，跟格子裡、圖例上的記號同一個形狀。
+   星號 SVG 藏起來，長方形用 CSS 畫；顏色跟著文字（反白的篩選鈕裡就是反白色），勾完成的淡到 16% */
+html[data-skin="typewriter"] span.star{display:inline-block;width:.34em;height:.9em;background:currentColor;color:var(--ink);
+  vertical-align:-.1em;margin-right:.7ch}
+html[data-skin="typewriter"] span.star svg{display:none}
+html[data-skin="typewriter"] :is(.drow,.item).done .star{opacity:.16}
 /* 桌機：格子內保留最多 3 行事項文字（小字、前面是種類記號、無底色晶片） */
 html[data-skin="typewriter"] .cchips{gap:1px;align-self:stretch}
 html[data-skin="typewriter"] .cchip, html[data-skin="typewriter"] .cchip.evt,
@@ -4133,16 +4137,13 @@ function twTypeIn(list, o){
     twTwinkle(el, d + Math.round(dur * .6));
   });
 }
-/** ✦ 重大：出現時閃一下（空心 ✧ → 實心 ✦，略放大再收回） */
+/** ▮ 重大：出現時長高一下 */
 function twTwinkle(root, delay){
   for(const s of $$('.star', root)){
-    if(s.closest('#p-cal')) continue;      // 月曆上的重大記號是 ▮（CSS 畫的長方形），沒有星星可閃
-    const p = $('svg path', s);
+    // 重大記號現在是 ▮（CSS 畫的長方形，沒有 SVG 可描）：出現時由矮長高、略過頭再收回
     try{
-      s.animate([{ transform:'scale(.55) rotate(-45deg)' }, { transform:'scale(1.25)', offset:.55 }, { transform:'none' }],
+      s.animate([{ transform:'scaleY(.2)', opacity:0 }, { transform:'scaleY(1.3)', opacity:1, offset:.55 }, { transform:'none' }],
                 { duration: 380, delay, easing:'ease-out', fill:'backwards' });
-      if(p) p.animate([{ fillOpacity:0 }, { fillOpacity:0, offset:.5 }, { fillOpacity:1, offset:.5 }, { fillOpacity:1 }],
-                      { duration: 380, delay, fill:'backwards' });
     }catch(e){}
   }
 }
@@ -4769,11 +4770,13 @@ function renderDone(){
    把「還沒勾完成」的東西攤成一份條列：月曆上的重複排程與單一行程，加上近期任務。
    這一頁不存任何東西——每次都從同一批資料現算，所以在月曆或近期任務勾完成，這裡自動少一筆；
    在這裡勾，月曆與近期任務也一起變（勾的是同一筆 completions／任務的 done）。
-   範圍：重複排程沒有盡頭，只看視窗內（往前 PEND_BACK 天～往後 PEND_AHEAD 天）。同一條排程／行程最多列兩筆：
-   最近一次逾期沒勾的（更早的併成「另 N 次逾期」）＋接下來的第一次——每天都有的排程若一天一筆全攤開，整頁會被同一件事洗掉。
-   視窗之後才開始的單一行程各列一筆（起始日）；近期任務不受視窗限制，逾期再久也在，沒有截止日的排最後。
+   範圍：
+   - 過去：重複排程與單一行程「從起始日到昨天所有沒勾的」全部列出，不設回溯上限（每一次各一筆；多日行程逐日各一筆）
+   - 今天起：重複排程沒有盡頭，只列每一條接下來的第一次沒勾的（PEND_AHEAD 天內，每天都有的排程才不會一天一筆洗版）；
+     單一行程不受天數限制（起始日在再遠也列出第一個沒勾的那天）
+   - 近期任務：全部（逾期再久也在），沒有截止日的排最後
    ============================================================ */
-const PEND_BACK = 7, PEND_AHEAD = 7;
+const PEND_AHEAD = 7;
 const PEND_GROUPS = [
   {k:'late',     label:'已逾期',   due:'late'},
   {k:'today',    label:'今天',     due:'today'},
@@ -4782,29 +4785,27 @@ const PEND_GROUPS = [
   {k:'far',      label:'之後',     due:'due far'},
   {k:'none',     label:'未定截止日', due:''}
 ];
-/** 所有還沒完成的項目，每筆 {kind, row, date}；date 是這一次落在哪天（任務＝截止日，可能是 ''）。
-    more＝這一條排程／行程在更早的日子還有幾次逾期沒勾 */
+/** 所有還沒完成的項目，每筆 {kind, row, date}；date 是這一次落在哪天（任務＝截止日，可能是 ''） */
 function pendingItems(){
-  const today = todayStr(), from = addDays(today, -PEND_BACK), to = addDays(today, PEND_AHEAD);
-  const per = new Map();                      // kind:id → { late:[逾期沒勾的（由舊到新）], next:視窗內的第一次 }
-  for(let d = from; d <= to; d = addDays(d, 1)){
-    for(const it of itemsOn(d)){
-      if(isDone(it.row.id, d)) continue;
-      const k = it.kind + ':' + it.row.id;
-      let g = per.get(k);
-      if(!g) per.set(k, g = { late:[], next:null });
-      const x = { ...it, date:d };
-      if(d < today) g.late.push(x); else if(!g.next) g.next = x;
+  const today = todayStr(), to = addDays(today, PEND_AHEAD);
+  const out = [];
+  for(const s of state.schedules){
+    // 沒有起始日的舊資料：從錨點日、再不然從兩個月前算起（規則本身不會在起始日之前落點，早算也是白算）
+    let d = s.start_date || s.anchor_date || addDays(today, -60);
+    for(; d <= to; d = addDays(d, 1)){
+      const hit = schedShowsOn(s, d);
+      if(!hit.on || isDone(s.id, d)) continue;
+      out.push({ kind:'schedule', row:s, date:d, origin:hit.origin, moved:hit.moved });
+      if(d >= today) break;                    // 今天起只要接下來的第一次
     }
   }
-  const out = [];
-  for(const g of per.values()){
-    if(g.late.length){ const last = g.late[g.late.length - 1]; last.more = g.late.length - 1; out.push(last); }
-    if(g.next) out.push(g.next);
-  }
   for(const e of state.events){
-    if(e.date > to && !isDone(e.id, e.date))
-      out.push({ kind:'event', row:e, date:e.date, span:eventSpan(e), dayIndex:1, first:true, last:eventSpan(e) === 1 });
+    const end = eventEnd(e), span = eventSpan(e);
+    for(let d = e.date; d <= end; d = addDays(d, 1)){
+      if(isDone(e.id, d)) continue;
+      out.push({ kind:'event', row:e, date:d, span, dayIndex:diffDays(d, e.date) + 1, first:d === e.date, last:d === end });
+      if(d >= today) break;
+    }
   }
   for(const t of state.tasks) if(!t.done) out.push({ kind:'task', row:t, date:t.due_date || '' });
   return out;
@@ -4850,7 +4851,6 @@ function occCardHTML(it, dueCls){
         ${r.time_text?`<span class="tag time">${esc(r.time_text)}</span>`:''}
         ${kindTag}
         ${it.moved?`<span class="tag mv">原 ${esc(mdDate(it.origin))} 挪來</span>`:''}
-        ${it.more?`<span class="tag late">另 ${it.more} 次逾期</span>`:''}
         ${r.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(r.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
@@ -4881,17 +4881,17 @@ function wireOccCard(card){
   };
 }
 
-function renderPendFilters(){
-  renderChipBar($('#fl-pend'), pendingItems().map(it=>it.row),
+function renderPendFilters(items){
+  renderChipBar($('#fl-pend'), (items || pendingItems()).map(it=>it.row),
     state.pendFilter, state.pendImpOnly, (f,i)=>{
       state.pendFilter = f; state.pendImpOnly = i;
       redrawList(()=>{ renderPending(); renderPendFilters(); });
       twTypeIn(twRows($('#pend-body')));
     });
 }
-function renderPending(){
+function renderPending(items){
   const body = $('#pend-body');
-  let rows = pendingItems();
+  let rows = items || pendingItems();
   const total = rows.length;
   if(state.pendFilter)  rows = rows.filter(it=>it.row.category===state.pendFilter);
   if(state.pendImpOnly) rows = rows.filter(it=>it.row.important);
@@ -6784,7 +6784,7 @@ function render(){
   if(state.page==='list'){ renderFilters(); renderList(); }
   else if(state.page==='cal'){ renderCal(); }
   else if(state.page==='task'){ renderTaskFilters(); renderTasks(); }
-  else if(state.page==='pend'){ renderPendFilters(); renderPending(); }
+  else if(state.page==='pend'){ const it = pendingItems(); renderPendFilters(it); renderPending(it); }
   else { renderDone(); }
   setSync();
 }
