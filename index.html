@@ -339,6 +339,9 @@ main{padding:var(--s-6) 0 var(--s-9)}
   width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:var(--ink2);
 }
 .item.ended .cadence i.on{background:var(--tick)}
+.cadrow{display:block}
+/* 月曆／清單的種類記號（• ○ × ──）只有打字機主題畫，見 html[data-skin="typewriter"] .sym */
+.sym{display:none}
 
 /* 詳細內容裡的節奏條：給得起說明就寫清楚 */
 .dv-cad{margin:0 0 var(--s-5)}
@@ -565,6 +568,8 @@ span.star svg{width:100%;height:100%;display:block}
   -webkit-mask:var(--star4) no-repeat center/contain;
           mask:var(--star4) no-repeat center/contain}
 .dots i.imp.done{background:currentColor !important;opacity:.45;box-shadow:none}
+/* 近期任務：小方塊（圓點＝重複排程、菱形＝單一行程、星＝重大）；完成後跟其他記號一樣變成空心 */
+.dots i.tsk{width:calc(var(--m)*.82);height:calc(var(--m)*.82);border-radius:1.3px}
 .cchips{display:none;flex-direction:column;gap:2px;min-width:0}
 .cchip{font-size:var(--t-2xs);line-height:1.4;padding:2px 6px;border-radius:5px;background:var(--bg2);
   color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -587,6 +592,8 @@ span.star svg{width:100%;height:100%;display:block}
 .cchip.evt.mid{border-radius:3px}
 .cchip.evt.en{border-radius:3px 999px 999px 3px}
 .cchip.evt .cnt{width:8px;height:8px;flex:none;opacity:.6;margin-right:2px;display:inline-block;vertical-align:-.05em}
+/* 近期任務：只描邊、不填底（重複排程填灰底＋色條、單一行程是淡染膠囊） */
+.cchip.tsk:not(.done){background:transparent;box-shadow:inset 0 0 0 1px var(--c-line);border-radius:3px}
 .cmore{font-size:var(--t-2xs);color:var(--ink2);padding-left:6px}
 @media(min-width:940px){
   .wk-bars{bottom:5px}
@@ -605,6 +612,7 @@ span.star svg{width:100%;height:100%;display:block}
 .legend span{display:inline-flex;align-items:center;gap:var(--s-2)}
 .legend .lg-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
 .legend .lg-dot.evt{width:5.09px;height:5.09px;margin:0 1.06px;border-radius:1.27px;transform:rotate(45deg)}
+.legend .lg-dot.tsk{width:5px;height:5px;margin:0 .5px;border-radius:1.2px}
 .legend .lg-dot.imp{width:8.7px;height:8.7px;border-radius:0;transform:none;
   -webkit-mask:var(--star4) no-repeat center/contain;
           mask:var(--star4) no-repeat center/contain}
@@ -969,9 +977,10 @@ select.inp{appearance:none;background-image:var(--sel-arrow);
     position:fixed;left:0;right:0;bottom:0;z-index:44;border-radius:0;
     background:var(--nav-bg);backdrop-filter:blur(12px);
     border:none;border-top:1px solid var(--line);padding:7px 12px calc(7px + env(safe-area-inset-bottom));
-    gap:var(--s-3);box-shadow:0 -2px 14px rgba(0,0,0,.06);
+    gap:4px;box-shadow:0 -2px 14px rgba(0,0,0,.06);
   }
-  .nav button{height:46px;flex-direction:row;font-size:var(--t-sm)}
+  /* 四個分頁擠一列：按鈕均分、字不換行也不撐出去；太窄（< 380px）就收掉圖示，只留字 */
+  .nav button{height:46px;flex-direction:row;font-size:var(--t-sm);flex:1 1 0;min-width:0;padding:0 4px;gap:5px}
   .nav button.on{background:var(--accent-soft)}
   .nav-ind>span{background:var(--accent-soft)}
   body.app-on{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
@@ -979,6 +988,9 @@ select.inp{appearance:none;background-image:var(--sel-arrow);
   .top-in{min-height:54px}
   main{padding:var(--s-5) 0 var(--s-7)}
   .menu{right:13px;top:calc(54px + env(safe-area-inset-top))}
+}
+@media(max-width:379px){
+  html:not([data-skin="typewriter"]) .nav svg{display:none}
 }
 @media(min-width:760px){
   #nav-holder{
@@ -1083,11 +1095,24 @@ html[data-skin="typewriter"] :focus-visible{outline-offset:2px}
 /* ---------- 標頭：實心底、不畫線、不模糊 ---------- */
 html[data-skin="typewriter"] header.top{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
 html[data-skin="typewriter"] .top-in{height:var(--tw-hdr);min-height:0;padding-top:18px;padding-bottom:22px;gap:14px;align-items:center}
-html[data-skin="typewriter"] .pill{background:none;border:0;border-radius:0;height:auto;padding:4px 2px;gap:6px;
+/* 同步標籤：電傳打字機的狀態碼。兩字元的代碼夾在方括號裡（[OK] 已同步），跟 [ ]／[x] 勾選框同一個語彙；
+   代碼是粗體、後面的字是一般粗細。代碼由 setSync 設在 .pill 的 data-st */
+html[data-skin="typewriter"] .pill{background:none;border:0;border-radius:0;height:auto;padding:4px 2px;gap:.7ch;
   font:400 12px/1 var(--font);color:var(--muted)}
 html[data-skin="typewriter"] .pill .dot{width:auto;height:auto;border-radius:0;background:none;opacity:1;
-  font:400 11px/1 var(--mono);color:var(--accent)}
-html[data-skin="typewriter"] .pill .dot::before{content:"●"}
+  font:700 11px/1 var(--mono);letter-spacing:0;white-space:pre;color:var(--accent)}
+html[data-skin="typewriter"] .pill .dot::before{content:"[OK]"}
+html[data-skin="typewriter"] .pill[data-st="sync"] .dot::before{content:"[..]"}
+html[data-skin="typewriter"] .pill[data-st="up"] .dot::before{content:"[UP]"}
+html[data-skin="typewriter"] .pill[data-st="off"] .dot::before, html[data-skin="typewriter"] .pill[data-st="local"] .dot::before{content:"[--]"}
+html[data-skin="typewriter"] .pill[data-st="err"] .dot::before{content:"[!!]"}
+html[data-skin="typewriter"] .pill[data-st="none"] .dot::before{content:"[??]"}
+/* 窄螢幕（< 420px）平常的「已同步」只留代碼 [OK]：標頭一行要放英文頁名＋中文＋標籤＋選單，多出來的字會把中文標題擠成「重…」。
+   字仍在（螢幕閱讀器讀得到、按住有 title）；出狀況（離線、待上傳、異常…）時照樣完整顯示 */
+@media(max-width:419px){
+  html[data-skin="typewriter"] .pill[data-st="ok"] #sync-t{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+}
 html[data-skin="typewriter"] .pill.warn{background:none;border:0;color:var(--hot-ink)}
 html[data-skin="typewriter"] .pill.warn .dot{background:none;color:var(--hot-mark)}
 html[data-skin="typewriter"] .pill.idle .dot{background:none;color:var(--muted);opacity:.75}
@@ -1123,7 +1148,8 @@ html[data-skin="typewriter"] .nav button::after{border-radius:0}
 /* ---------- 頁首：標題在標頭，內容區只剩動作（近期任務的「已完成 N」、已完成頁的返回） ---------- */
 html[data-skin="typewriter"] .page-head{display:flex;justify-content:flex-end;align-items:center;margin:0 0 12px;min-height:0}
 html[data-skin="typewriter"] .page-head h1{display:none}
-html[data-skin="typewriter"] #p-list .page-head, html[data-skin="typewriter"] #p-cal .page-head{display:none}
+html[data-skin="typewriter"] #p-list .page-head, html[data-skin="typewriter"] #p-cal .page-head,
+html[data-skin="typewriter"] #p-pend .page-head{display:none}
 html[data-skin="typewriter"] #p-done .page-head{justify-content:flex-start}
 html[data-skin="typewriter"] .tbtn{border:0;background:none;border-radius:0;box-shadow:none;height:auto;min-height:32px;
   padding:4px 8px;font:400 13px/1.2 var(--font);color:var(--accent-ink)}
@@ -1188,8 +1214,9 @@ html[data-skin="typewriter"] .drow.evt.done .tag.ev{color:var(--muted)}
 
 /* 節奏條 → 未來四週的 ■□（實點用類別色、空點 faint） */
 html[data-skin="typewriter"] .cadence{gap:1ch;margin-top:4px;padding-bottom:3px;align-items:baseline;
-  font:400 11px/1.2 var(--mono);letter-spacing:.5px;overflow:hidden}
-html[data-skin="typewriter"] .cadence b{flex:none;display:inline-flex;gap:0;font-weight:400}
+  font:400 11px/1.2 var(--mono);letter-spacing:0;overflow:hidden}
+/* ■ 相鄰時字形幾乎貼在一起（每天的排程會變成一整條實心橫桿），格與格之間留 1.5px 讓每一格都看得出來 */
+html[data-skin="typewriter"] .cadence b{flex:none;display:inline-flex;gap:1.5px;font-weight:400}
 html[data-skin="typewriter"] .cadence i{flex:none;width:auto;height:auto;min-width:0;border-radius:0;background:none !important;
   font-style:normal;color:var(--faint)}
 html[data-skin="typewriter"] .cadence i::before{content:"□"}
@@ -1197,12 +1224,22 @@ html[data-skin="typewriter"] .cadence i.on{color:var(--c)}
 html[data-skin="typewriter"] .cadence i.on::before{content:"■"}
 html[data-skin="typewriter"] .cadence i.now::after{display:none}
 html[data-skin="typewriter"] .item.ended .cadence i.on{color:var(--faint)}
+/* 節奏條同一列的右側：點線引導＋「下次 …」。列的右半邊本來是空的，讓每一筆都在同一條右緣收尾 */
+html[data-skin="typewriter"] .cadrow{display:flex;align-items:baseline;gap:1ch;margin-top:4px}
+html[data-skin="typewriter"] .cadrow .cadence{margin-top:0;flex:none}
+html[data-skin="typewriter"] .cadrow .lead{flex:1 1 0;min-width:0;overflow:hidden;white-space:nowrap;
+  font:400 11px/1.2 var(--mono);font-style:normal;color:var(--faint)}
+html[data-skin="typewriter"] .cadrow .lead::before{content:"· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·"}
+html[data-skin="typewriter"] .cadrow .nx{flex:none;font:400 11.5px/1.2 var(--font);color:var(--muted);white-space:nowrap}
+html[data-skin="typewriter"] .cadrow .nx.today{color:var(--hot-ink);font-weight:700}
+@media(max-width:339px){html[data-skin="typewriter"] .cadrow :is(.lead,.nx){display:none}}
 html[data-skin="typewriter"] .dv-cad .cadence{font-size:14px}
 html[data-skin="typewriter"] .dv-cad .cadence i{height:auto}
 
 /* 子任務進度 → ■■□□ 2/4 */
 html[data-skin="typewriter"] .pgs{gap:1ch;margin-top:3px}
-html[data-skin="typewriter"] .pips{gap:0;flex-wrap:nowrap;font:400 12px/1.3 var(--mono)}
+/* ■■■ 全滿時字形會黏成一條，格與格之間留 .2em */
+html[data-skin="typewriter"] .pips{gap:.2em;flex-wrap:nowrap;font:400 12px/1.3 var(--mono)}
 html[data-skin="typewriter"] .pips i{width:auto;height:auto;border-radius:0;background:none !important;box-shadow:none !important;
   font-style:normal;color:var(--faint)}
 html[data-skin="typewriter"] .pips i::before{content:"□"}
@@ -1257,30 +1294,51 @@ html[data-skin="typewriter"] .cell.out .dn{color:var(--faint)}
 html[data-skin="typewriter"] .cell.today .dn{background:var(--inv-bg);color:var(--inv-ink)}
 html[data-skin="typewriter"] .cell.sel .dn{color:var(--ink);box-shadow:0 3px 0 var(--accent)}
 html[data-skin="typewriter"] .cell.today.sel .dn{color:var(--inv-ink)}
-/* 手機：數字下一串彩色小點字元（單一行程 ◆、重大 ✦），勾完成的淡掉 */
+/* ---------- 月曆的記號：靠形狀，不靠顏色 ----------
+   •  重複排程    ○  單一行程    ×  近期任務    ▮  重大事件（任何種類，取代原本的種類記號）    ──  多日行程
+   全部單色（墨色），類別不再用顏色區分；勾完成 → 淡到只剩 16%（跟未完成一眼分得出來）。
+   ▮ 是用 CSS 畫的長方形（字型裡沒有 ▮，缺字會退到系統字、大小與位置都不受控） */
 html[data-skin="typewriter"] .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:0 1px;padding:0 2px;
-  font:400 10px/1.1 var(--mono);min-height:11px;max-width:100%}
-html[data-skin="typewriter"] .dots i{width:auto;height:auto;border-radius:0;transform:none;background:none !important;
-  box-shadow:none !important;-webkit-mask:none;mask:none;font-style:normal;opacity:1}
+  font:400 12px/1.15 var(--mono);min-height:13px;max-width:100%}
+html[data-skin="typewriter"] .dots i{width:auto;min-width:1.05ch;text-align:center;height:auto;border-radius:0;transform:none;
+  background:none !important;box-shadow:none !important;-webkit-mask:none;mask:none;font-style:normal;opacity:1;
+  color:var(--ink2) !important}
 html[data-skin="typewriter"] .dots i::before{content:"•"}
-html[data-skin="typewriter"] .dots i.evt::before{content:"◆";font-size:.8em}
-html[data-skin="typewriter"] .dots i.imp::before{content:"✦"}
-html[data-skin="typewriter"] .dots i.done, html[data-skin="typewriter"] .dots i.imp.done{opacity:.4}
-/* 多日行程＝細彩色線（按鈕仍是 6px 高、好點，線畫在中間 2px） */
+html[data-skin="typewriter"] .dots i.evt::before{content:"○"}
+html[data-skin="typewriter"] .dots i.tsk::before{content:"×";font-size:1.2em;line-height:.95}
+html[data-skin="typewriter"] .dots i.imp{color:var(--ink) !important}
+html[data-skin="typewriter"] .dots i.imp::before{content:"";display:inline-block;width:.34em;height:.92em;background:currentColor;vertical-align:-.1em}
+html[data-skin="typewriter"] .dots i.done, html[data-skin="typewriter"] .dots i.imp.done{opacity:.16}
+/* 多日行程＝細線（按鈕仍是 6px 高、好點，線畫在中間 2px）；重大的加粗成 4px */
 html[data-skin="typewriter"] .bar-ev, html[data-skin="typewriter"] .bar-ev.openL, html[data-skin="typewriter"] .bar-ev.openR{
-  border-radius:0;background:linear-gradient(var(--c),var(--c)) center/100% 2px no-repeat}
-html[data-skin="typewriter"] .bar-ev.imp{box-shadow:none}
-html[data-skin="typewriter"] .bar-ev.done, html[data-skin="typewriter"] .bar-ev.done.imp{box-shadow:none;opacity:.35}
-/* 桌機：格子內保留最多 3 行事項文字（小字、前面彩色 ■、無底色晶片） */
+  border-radius:0;color:var(--ink2);background:linear-gradient(currentColor,currentColor) center/100% 2px no-repeat}
+html[data-skin="typewriter"] .bar-ev.imp{box-shadow:none;color:var(--ink);background-size:100% 4px}
+html[data-skin="typewriter"] .bar-ev.done, html[data-skin="typewriter"] .bar-ev.done.imp{box-shadow:none;opacity:.16}
+/* 當日面板與清單裡的種類記號（<i class="sym sym-…">） */
+html[data-skin="typewriter"] .sym{display:inline-block;flex:none;font:400 1em/1 var(--mono);font-style:normal;color:var(--ink2)}
+html[data-skin="typewriter"] .sym-rec::before{content:"•"}
+html[data-skin="typewriter"] .sym-evt::before{content:"○"}
+html[data-skin="typewriter"] .sym-tsk::before{content:"×"}
+html[data-skin="typewriter"] .sym-bar::before{content:"──"}
+html[data-skin="typewriter"] .drow.done .sym{opacity:.16}
+/* 當日面板的重大事件：星號改成 ▮，跟格子裡、圖例上的記號同一個形狀 */
+html[data-skin="typewriter"] #p-cal .drow .star{width:.34em;height:.9em;background:var(--ink);vertical-align:-.1em;margin-right:.7ch}
+html[data-skin="typewriter"] #p-cal .drow .star svg{display:none}
+html[data-skin="typewriter"] #p-cal .drow.done .star{opacity:.16}
+/* 桌機：格子內保留最多 3 行事項文字（小字、前面是種類記號、無底色晶片） */
 html[data-skin="typewriter"] .cchips{gap:1px;align-self:stretch}
 html[data-skin="typewriter"] .cchip, html[data-skin="typewriter"] .cchip.evt,
 html[data-skin="typewriter"] .cchip.done, html[data-skin="typewriter"] .cchip.evt.done{
   background:none;box-shadow:none;border-radius:0;padding:0;font:400 11.5px/1.45 var(--font);color:var(--ink2)}
-html[data-skin="typewriter"] .cchip::before{content:"■";color:var(--c);margin-right:.6ch;font:400 .85em/1 var(--mono)}
+html[data-skin="typewriter"] .cchip::before{content:"•";color:var(--ink2);margin-right:.6ch;font:400 1em/1 var(--mono)}
+html[data-skin="typewriter"] .cchip.evt::before{content:"○"}
+html[data-skin="typewriter"] .cchip.tsk::before{content:"×"}
+html[data-skin="typewriter"] .cchip.imp::before{content:"";display:inline-block;width:.3em;height:.85em;background:var(--ink);
+  margin:0 .8ch 0 .2ch;vertical-align:-.08em}
 html[data-skin="typewriter"] .cchip.done{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted)}
-html[data-skin="typewriter"] .cchip.done::before{opacity:.5}
+html[data-skin="typewriter"] .cchip.done::before{opacity:.16}
 html[data-skin="typewriter"] .cchip.evt .cnt{display:none}
-html[data-skin="typewriter"] .cchip .star{width:.9em;height:.9em}
+html[data-skin="typewriter"] .cchip .star{display:none}
 html[data-skin="typewriter"] .cmore{padding-left:0;color:var(--muted);font-size:11px}
 @media(min-width:940px){
   html[data-skin="typewriter"] .dots{display:none}
@@ -1296,8 +1354,9 @@ html[data-skin="typewriter"] .legend{background:none;border-top:0;padding:12px 0
 html[data-skin="typewriter"] .legend .lg-dot, html[data-skin="typewriter"] .legend .lg-bar{width:auto;height:auto;margin:0;border-radius:0;
   transform:none;background:none;-webkit-mask:none;mask:none;opacity:1;font:400 11px/1 var(--mono);color:var(--muted)}
 html[data-skin="typewriter"] .legend .lg-dot::before{content:"•"}
-html[data-skin="typewriter"] .legend .lg-dot.evt::before{content:"◆"}
-html[data-skin="typewriter"] .legend .lg-dot.imp::before{content:"✦";color:var(--hot-mark)}
+html[data-skin="typewriter"] .legend .lg-dot.evt::before{content:"○"}
+html[data-skin="typewriter"] .legend .lg-dot.tsk::before{content:"×"}
+html[data-skin="typewriter"] .legend .lg-dot.imp::before{content:"";display:inline-block;width:.34em;height:.92em;background:var(--ink);vertical-align:-.1em}
 html[data-skin="typewriter"] .legend .lg-bar::before{content:"──"}
 
 /* ---------- 當日面板：無框 ---------- */
@@ -1508,7 +1567,7 @@ html[data-skin="typewriter"] .ov.tw-out, html[data-skin="typewriter"] .ov.tw-out
 /* Toast：自己一個字一個字打出來，不滑入 */
 html[data-skin="typewriter"] .toast{animation:none}
 /* 同步中：字元轉圈（▖▘▝▗，JS 只在「同步中」時換字） */
-html[data-skin="typewriter"] .pill.spin .dot::before{content:attr(data-g)}
+html[data-skin="typewriter"] .pill.spin .dot::before{content:"[" attr(data-g) "]"}
 /* 輸入欄：focus 時 accent 2px 底線由左往右一格一格「打」出來（選單式的 select 維持原本的直接變色） */
 html[data-skin="typewriter"] input.inp, html[data-skin="typewriter"] textarea.inp{
   background-image:linear-gradient(var(--accent),var(--accent));background-repeat:no-repeat;
@@ -1936,6 +1995,10 @@ html[data-skin="typewriter"] .top-sp{flex:0 0 0}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.4" width="6" height="3.8" rx="1.4"/><path d="M9.3 13.2l2 2 3.4-4"/></svg>
           近期任務
         </button>
+        <button data-p="pend">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" stroke-dasharray="3.4 3.1"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>
+          未完成
+        </button>
       </nav>
     </div>
 
@@ -1972,9 +2035,11 @@ html[data-skin="typewriter"] .top-sp{flex:0 0 0}
           <div class="legend">
             <span><i class="lg-dot"></i>重複排程</span>
             <span><i class="lg-dot evt"></i>單一行程</span>
+            <span><i class="lg-dot tsk"></i>近期任務</span>
             <span><i class="lg-bar"></i>多日行程</span>
             <span><i class="lg-dot imp"></i>重大事件</span>
-            <span class="lg-note">顏色代表類別</span>
+            <span class="lg-note candy-only">顏色代表類別</span>
+            <span class="lg-note tw-only">記號極淡＝已完成</span>
           </div>
         </div>
         <div class="daypanel">
@@ -2000,6 +2065,15 @@ html[data-skin="typewriter"] .top-sp{flex:0 0 0}
       </div>
       <div class="filters" id="fl-task"></div>
       <div id="task-body"></div>
+    </section>
+
+    <!-- PAGE 4：未完成（月曆上還沒勾的＋近期任務，勾了就從這裡消失） -->
+    <section id="p-pend" class="wrap hide">
+      <div class="page-head">
+        <h1>未完成</h1>
+      </div>
+      <div class="filters" id="fl-pend"></div>
+      <div id="pend-body"></div>
     </section>
 
     <!-- PAGE 3b：已完成（由「近期任務」右上角進入） -->
@@ -2447,15 +2521,26 @@ function itemsOn(dateStr){
   });
   return out;
 }
+/** 近期任務（一次性、有截止日的）落在截止日那天。沒有截止日的無處可放，只出現在「近期任務」與「未完成」。
+    月曆上的任務與任務頁是同一筆資料：完成與否看任務自己的 done（不走 completions），兩邊自然同步。 */
+function tasksOn(dateStr){
+  const out = [];
+  for(const t of state.tasks) if(t.due_date === dateStr) out.push({kind:'task', row:t, span:1});
+  return out;
+}
+/** 月曆與當日面板用：排程＋單一行程＋任務。小工具、匯出等要的仍是 itemsOn()（任務它自己另外收） */
+const dayItems = dateStr => itemsOn(dateStr).concat(tasksOn(dateStr));
 const doneKey = (id, date) => id + '|' + date;
 function isDone(id, date){ return state.doneIndex.has(doneKey(id,date)); }
+/** 某個項目在某天是不是完成了：排程／行程逐日看 completions，任務看自己 */
+const itemDone = (it, date) => it.kind === 'task' ? !!it.row.done : isDone(it.row.id, date);
 function rebuildDoneIndex(){
   state.doneIndex = new Map();
   for(const c of state.completions) state.doneIndex.set(doneKey(c.item_id, c.occur_date), c);
 }
 
 /* ============================================================
-   近期任務：一次性的任務，不進月曆
+   近期任務：一次性的任務（有截止日的會依截止日出現在月曆，見 tasksOn）
    完成度存在任務自己身上（subtasks 的 done），不走 completions
    ============================================================ */
 const ARCHIVE_DAYS = 2;                       // 勾完成後還在「近期任務」留幾天
@@ -2529,6 +2614,7 @@ const state = {
   page:'list', calY:0, calM:0, selDate: todayStr(),
   filter:null, impOnly:false,
   taskFilter:null, taskImpOnly:false,
+  pendFilter:null, pendImpOnly:false,
   loaded:false, online:navigator.onLine,
   syncedAt:0,          // 最後一次成功拉回伺服器資料的時間（0 = 這次開啟還沒對過帳）
   pulling:false,       // 正在拉資料
@@ -2746,20 +2832,21 @@ const isDemo = () => session?.user?.id === 'demo-user';
 function setSync(){
   const el = $('#sync'), t = $('#sync-t');
   if(!el) return;
-  // 換字交給 twSyncText：糖果紙照原樣直接設字；打字機跳字、同步中字元轉圈
-  const set = (cls, txt, title)=>{ el.className = cls; twSyncText(el, t, txt); el.title = title; };
+  // 換字交給 twSyncText：糖果紙照原樣直接設字；打字機跳字、同步中字元轉圈。
+  // st＝狀態代碼：打字機的標籤畫成 [OK] 這種兩字元的電傳打字機狀態碼（CSS 的 .pill[data-st]），糖果紙不看它
+  const set = (cls, txt, title, st)=>{ el.className = cls; el.dataset.st = st; twSyncText(el, t, txt); el.title = title; };
   // 試用模式根本沒有雲端，別讓它看起來像同步好了
-  if(isDemo())              set('pill idle','僅本機','試用模式：資料只存在這台裝置');
+  if(isDemo())              set('pill idle','僅本機','試用模式：資料只存在這台裝置','local');
   else if(queue.length)     set('pill warn', `待上傳 ${queue.length}`, navigator.onLine
-      ? '有變更還沒送上雲端（剛恢復連線時要先換發登入憑證，最多約等一分鐘）' : '有變更還沒送上雲端');
-  else if(!state.online)    set('pill warn', '離線', '目前離線，顯示的是本機資料');
+      ? '有變更還沒送上雲端（剛恢復連線時要先換發登入憑證，最多約等一分鐘）' : '有變更還沒送上雲端','up');
+  else if(!state.online)    set('pill warn', '離線', '目前離線，顯示的是本機資料','off');
   // 每分鐘的背景拉取不要讓狀態閃成「同步中」：兩分鐘內才剛對過帳就維持原狀
   else if(flushing || (state.pulling && !(state.syncedAt && Date.now() - state.syncedAt < 120000)))
-                            set('pill idle','同步中','正在與雲端對帳');
-  else if(state.syncErr)    set('pill warn','同步異常','有變更被伺服器退回，請重新同步');
+                            set('pill idle','同步中','正在與雲端對帳','sync');
+  else if(state.syncErr)    set('pill warn','同步異常','有變更被伺服器退回，請重新同步','err');
   // 佇列空不等於同步好：這次開啟還沒成功拉回伺服器資料就不能說已同步
-  else if(!state.syncedAt)  set('pill warn','未同步','還沒成功連上雲端，顯示的是本機資料');
-  else                      set('pill','已同步','最後同步 ' + new Date(state.syncedAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+  else if(!state.syncedAt)  set('pill warn','未同步','還沒成功連上雲端，顯示的是本機資料','none');
+  else                      set('pill','已同步','最後同步 ' + new Date(state.syncedAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),'ok');
 }
 
 function enqueue(op){
@@ -3238,6 +3325,25 @@ function cadenceHTML(s, weeks){
     html:`<span class="cadence" style="--c:${catColor(s.category)}" role="img" aria-label="${label}">${out}</span>` };
 }
 
+/** 這條排程今天（含）之後的下一次落點（單次改期也算）。已結束、或一年多內都沒有就回 null */
+function nextOccurrence(s){
+  const today = todayStr(), limit = addDays(today, 400);
+  const end = s.end_date && s.end_date < limit ? s.end_date : limit;
+  for(let d = s.start_date && s.start_date > today ? s.start_date : today; d <= end; d = addDays(d, 1)){
+    if(schedShowsOn(s, d).on) return d;
+  }
+  return null;
+}
+/** 節奏條那一列右側的「下次」：打字機主題才畫（.tw-only），前面接一串點線引導，像打字機打出來的帳目。
+    列的右半邊本來是空的，這一欄讓每一筆都在同一條右緣收尾，畫面才不會全部擠在左邊 */
+function nextStubHTML(s){
+  const d = nextOccurrence(s);
+  if(!d) return '';
+  const k = diffDays(d, todayStr());
+  const rel = k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : k < 14 ? `${k} 天後` : mdDate(d);
+  return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(mdDate(d))} ${esc(wdOf(d))}">下次 ${rel}</span>`;
+}
+
 function itemCardHTML(s){
   const links = Array.isArray(s.links) ? s.links : [];
   const today = todayStr();
@@ -3255,7 +3361,7 @@ function itemCardHTML(s){
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
       ${s.description?`<span class="desc">${esc(s.description)}</span>`:''}
-      ${cadenceHTML(s).html}
+      <span class="cadrow">${cadenceHTML(s).html}${ended ? '' : nextStubHTML(s)}</span>
     </span>
   </button>`;
 }
@@ -3318,7 +3424,7 @@ function renderList(){
 function cmpOnDay(ds){
   const tm = r => String(r.time_text || '').trim();
   return (a, b) => {
-    const da = isDone(a.row.id, ds) ? 1 : 0, db = isDone(b.row.id, ds) ? 1 : 0;
+    const da = itemDone(a, ds) ? 1 : 0, db = itemDone(b, ds) ? 1 : 0;
     if(da !== db) return da - db;
     const ia = a.row.important ? 0 : 1, ib = b.row.important ? 0 : 1;
     if(ia !== ib) return ia - ib;
@@ -3426,28 +3532,30 @@ function renderCal(){
       const ds = ymd(d);
       const out = d.getMonth() !== m;
       // 已經畫成橫桿的多日行程，不再重複出現在格子裡
-      const items = itemsOn(ds).filter(it =>
+      const items = dayItems(ds).filter(it =>
         !(it.kind === 'event' && it.span > 1 && !spillIds.has(it.row.id)));
       // 格子只放得下前幾筆，用跟下面當日面板同一套順序挑，才不會挑出不一樣的三筆
       const shown = items.slice().sort(cmpOnDay(ds));
+    // 記號的形狀代表種類：重複 • ／單一行程 ○ ／任務 ×，重大＝▮（打字機主題不看顏色，見 CSS 的 .dots）；
+    // 糖果紙仍用類別色：圓點／菱形／小方塊
+    const kindCls = it => it.kind === 'event' ? ' evt' : it.kind === 'task' ? ' tsk' : '';
     const dots = shown.slice(0,8).map(it=>{
-      const done = isDone(it.row.id, ds);
+      const done = itemDone(it, ds);
       const col = catColor(it.row.category);
-      const ev = it.kind === 'event' ? ' evt' : '';
       const im = it.row.important ? ' imp' : '';
-      return `<i class="${done?'done':''}${ev}${im}" style="color:${col}${done?'':`;background:${col}`}"></i>`;
+      return `<i class="${done?'done':''}${kindCls(it)}${im}" style="color:${col}${done?'':`;background:${col}`}"></i>`;
     }).join('');
     const chips = shown.slice(0,LIM).map(it=>{
-      const done = isDone(it.row.id, ds);
+      const done = itemDone(it, ds);
       const col = catColor(it.row.category);
       const st = it.row.important ? STAR : '';
       const t = (it.row.time_text?it.row.time_text+' ':'') + it.row.title;
       if(it.kind !== 'event'){
-        return `<span class="cchip ${done?'done':''}" style="--c:${col}">${st}${esc(t)}</span>`;
+        return `<span class="cchip${it.kind==='task'?' tsk':''}${it.row.important?' imp':''} ${done?'done':''}" style="--c:${col};--c-line:${hexRgba(col,.42)}">${st}${esc(t)}</span>`;
       }
       const cont = it.span > 1 ? ` ${it.first?'st':''}${it.last?'en':''}${!it.first&&!it.last?'mid':''}` : '';
       const style = `--c:${col};--c-soft:${hexRgba(col,.15)};--c-line:${hexRgba(col,.42)}`;
-      return `<span class="cchip evt${cont} ${done?'done':''}" style="${style}">${
+      return `<span class="cchip evt${cont}${it.row.important?' imp':''} ${done?'done':''}" style="${style}">${
         it.span>1 && !it.first ? SVG(IC.next, 'class="cnt"') : ''}${st}${esc(t)}</span>`;
     }).join('');
       const more = items.length>LIM ? `<span class="cmore">+${items.length-LIM}</span>` : '';
@@ -3997,7 +4105,7 @@ function twCount(el, key){
 function twCounters(root, pfx){
   if(!root) return;
   for(const n of $$('.group-h .n', root)) twCount(n, pfx + 'g:' + ($('.t', n.parentNode)?.textContent || ''));
-  for(const n of $$('.pn', root)){ const r = n.closest('[data-id]'); if(r) twCount(n, pfx + 'p:' + r.dataset.id); }
+  for(const n of $$('.pn', root)){ const r = n.closest('[data-id]'); if(r) twCount(n, pfx + 'p:' + r.dataset.id + (r.dataset.d || '')); }
 }
 
 /* ---------- 進場：內容由左往右「打」出來 ----------
@@ -4029,6 +4137,7 @@ function twTypeIn(list, o){
 /** ✦ 重大：出現時閃一下（空心 ✧ → 實心 ✦，略放大再收回） */
 function twTwinkle(root, delay){
   for(const s of $$('.star', root)){
+    if(s.closest('#p-cal')) continue;      // 月曆上的重大記號是 ▮（CSS 畫的長方形），沒有星星可閃
     const p = $('svg path', s);
     try{
       s.animate([{ transform:'scale(.55) rotate(-45deg)' }, { transform:'scale(1.25)', offset:.55 }, { transform:'none' }],
@@ -4440,14 +4549,17 @@ function twWatchMsgs(){
 }
 twWatchMsgs();
 
+/** 記號：打字機主題用形狀區分種類（• 重複、○ 單一行程、× 任務、── 多日、▮ 重大），糖果紙不畫（見 CSS 的 .sym） */
+const SYM = k => `<i class="sym sym-${k}" aria-hidden="true"></i>`;
+
 function renderDay(){
   const ds = state.selDate, d = parseYmd(ds);
   const dayChanged = lastDayKey !== null && lastDayKey !== ds;
   lastDayKey = ds;
   $('#dp-d1').textContent = `${d.getMonth()+1} 月 ${d.getDate()} 日`;
   $('#dp-d2').textContent = `週${WD[d.getDay()]}${ds===todayStr()?' · 今天':''}`;
-  const items = itemsOn(ds);
-  const done = items.filter(it=>isDone(it.row.id, ds)).length;
+  const items = dayItems(ds);
+  const done = items.filter(it=>itemDone(it, ds)).length;
   $('#dp-prog').textContent = items.length ? `${done}/${items.length}` : '';
   twCount($('#dp-prog'), 'dp');
 
@@ -4463,18 +4575,22 @@ function renderDay(){
   }
   const ordered = items.slice().sort(cmpOnDay(ds));
   box.innerHTML = ordered.map(it=>{
-    const r = it.row, dn = isDone(r.id, ds);
-    const ev = it.kind === 'event';
+    const r = it.row, dn = itemDone(it, ds);
+    const ev = it.kind === 'event', tk = it.kind === 'task';
     const col = catColor(r.category);
     const style = ev ? `--c:${col};--c-soft:${hexRgba(col,.13)};--c-line:${hexRgba(col,.4)}` : '';
     const kindTag = (ev
-      ? `<span class="tag ev">${it.span>1?`多日行程 第 ${it.dayIndex}/${it.span} 天`:'單一行程'}</span>`
-      : `<span class="tag">${esc(whenLabel(r))}</span>`)
+      ? `<span class="tag ev">${it.span>1?`${SYM('bar')}多日行程 第 ${it.dayIndex}/${it.span} 天`:`${SYM('evt')}單一行程`}</span>`
+      : tk ? `<span class="tag tk">${SYM('tsk')}近期任務 · 當日截止</span>`
+      : `<span class="tag">${SYM('rec')}${esc(whenLabel(r))}</span>`)
       + (it.moved ? `<span class="tag mv">原 ${esc(mdDate(it.origin))} 挪來</span>` : '');
-    const sp = subProgress(r, ds);                 // 子事項完成度（那一天的）
+    // 子事項完成度：排程／行程是「那一天」的，任務是它自己的
+    const sp = tk ? taskProgress(r) : subProgress(r, ds);
+    const pips = tk ? taskSubs(r).map(x=>`<i class="${x.done?'on':''}"></i>`)
+                    : itemSubs(r).map(x=>`<i class="${isSubDone(r.id, x.id, ds)?'on':''}"></i>`);
     const mk = (r.important && dayChanged) ? ' mk' : '';
-    return `<div class="drow ${ev?'evt':''} ${r.important?'imp':''} ${dn?'done':''}${mk}${takePop(doneKey(r.id, ds))}" data-id="${esc(r.id)}" data-k="${it.kind}" style="${style}">
-      <button class="ck ${dn?'on':''}" data-act="ck" aria-label="標記完成">
+    return `<div class="drow ${ev?'evt':''} ${tk?'tsk':''} ${r.important?'imp':''} ${dn?'done':''}${mk}${takePop(tk ? r.id : doneKey(r.id, ds))}" data-id="${esc(r.id)}" data-k="${it.kind}" style="${style}">
+      <button class="ck ${dn?'on':''}" data-act="ck" aria-label="${dn?'取消完成':'標記完成'}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
       </button>
       <button class="dmain" data-act="open">
@@ -4487,7 +4603,7 @@ function renderDay(){
           ${r.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(r.category)}</span>`:''}
         </span>
         ${sp.m?`<span class="pgs" style="--c:${col}">
-          <span class="pips">${itemSubs(r).map(x=>`<i class="${isSubDone(r.id, x.id, ds)?'on':''}"></i>`).join('')}</span>
+          <span class="pips">${pips.join('')}</span>
           <span class="pn ${sp.n===sp.m?'full':''}">${sp.n}/${sp.m}</span>
         </span>`:''}
       </button>
@@ -4496,16 +4612,28 @@ function renderDay(){
 
   $$('.drow', box).forEach(row=>{
     const id = row.dataset.id, kind = row.dataset.k;
-    const rec = kind==='schedule'
-      ? state.schedules.find(x=>x.id===id)
+    const rec = kind==='schedule' ? state.schedules.find(x=>x.id===id)
+      : kind==='task' ? state.tasks.find(x=>x.id===id)
       : state.events.find(x=>x.id===id);
     $('[data-act=ck]', row).onclick = e=>{
+      if(kind === 'task'){
+        // 勾完後這一列要等一下才重畫，期間再點一次要能取消：讀目前的資料，不用這一列建立時的 rec
+        const cur = state.tasks.find(x=>x.id===id) || rec;
+        if(!cur) return;
+        const wasDone = !!cur.done;
+        setTaskDone(cur, !wasDone);
+        dayCheckMotion(id, kind, ds, row, e.currentTarget, wasDone);
+        toast(!wasDone ? `已完成，兩天後移入「已完成」` : '已取消完成');
+        return;
+      }
       const wasDone = isDone(id, ds);
       toggleDone(id, kind, ds);
       dayCheckMotion(id, kind, ds, row, e.currentTarget, wasDone);
     };
     $('[data-act=open]', row).onclick = ()=>{
-      if(rec) openDetail({kind, row:rec, mode:'calendar', date:ds});
+      if(!rec) return;
+      if(kind === 'task') openTaskDetail(state.tasks.find(x=>x.id===id) || rec);
+      else openDetail({kind, row:rec, mode:'calendar', date:ds});
     };
   });
   twCounters(box, 'c:');
@@ -4517,7 +4645,7 @@ function renderDay(){
    ============================================================ */
 const CK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>';
 
-function taskCardHTML(t){
+function taskCardHTML(t, mark){
   const links = Array.isArray(t.links) ? t.links : [];
   const subs = taskSubs(t);
   const { n, m } = taskProgress(t);
@@ -4533,7 +4661,7 @@ function taskCardHTML(t){
       <span class="mt">
         ${t.done
           ? `<span class="tag did">${SVG(IC.check)}${dd?esc(fmtDate(dd))+' 完成':'已完成'}</span>`
-          : `<span class="tag ${DUE_CLS[di.k]}">${esc(di.label)}</span>`}
+          : `<span class="tag ${DUE_CLS[di.k]}">${mark?SYM('tsk'):''}${esc(di.label)}</span>`}
         ${t.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(t.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
@@ -4546,8 +4674,12 @@ function taskCardHTML(t){
   </div>`;
 }
 
+/** 清單列的 key（近期任務／已完成／未完成三頁共用）：標題列、任務、以及未完成頁裡「某天的某筆排程／行程」 */
+const listKey = el => el.dataset.d ? 'o:' + el.dataset.k + ':' + el.dataset.id + ':' + el.dataset.d : taskKey(el);
+const LIST_BODY = { task:'#task-body', done:'#done-body', pend:'#pend-body' };
 function wireTaskCards(root){
   $$('.item.task', root).forEach(card=>{
+    if(card.dataset.d){ wireOccCard(card); return; }
     const t = state.tasks.find(x=>x.id===card.dataset.id);
     if(!t) return;
     $('[data-act=ck]', card).onclick = e=>{
@@ -4557,8 +4689,8 @@ function wireTaskCards(root){
       setTaskDone(cur, done);
       completeWithMotion({
         row: card, ck: e.currentTarget, titleSel:'.ti', done,
-        rerender: render, root: ()=>$(state.page==='done' ? '#done-body' : '#task-body'),
-        sel: '.item.task, .group-h', keyOf: taskKey, key: 't:' + t.id
+        rerender: render, root: ()=>$(LIST_BODY[state.page] || '#task-body'),
+        sel: '.item.task, .group-h', keyOf: listKey, key: 't:' + t.id
       });
       toast(done ? `已完成，兩天後移入「已完成」` : '已取消完成');
     };
@@ -4568,10 +4700,11 @@ function wireTaskCards(root){
 }
 
 function groupHTML(label, list, note){
+  // 不能直接 list.map(taskCardHTML)：陣列索引會被當成第二個參數 mark
   return `<section class="group">
     <div class="group-h"><span class="t">${label}</span><span class="n">${list.length}</span>
       <span class="ln"></span>${note?`<span class="no">${note}</span>`:''}</div>
-    <div class="cards">${list.map(taskCardHTML).join('')}</div>
+    <div class="cards">${list.map(t=>taskCardHTML(t)).join('')}</div>
   </section>`;
 }
 
@@ -4630,6 +4763,159 @@ function renderDone(){
   body.innerHTML = `<div class="board">${groups.map(g=>groupHTML(g.label, g.list)).join('')}</div>`;
   wireTaskCards(body);
   twCounters(body, 'd:');
+}
+
+/* ============================================================
+   繪製：頁面四（未完成）
+   把「還沒勾完成」的東西攤成一份條列：月曆上的重複排程與單一行程，加上近期任務。
+   這一頁不存任何東西——每次都從同一批資料現算，所以在月曆或近期任務勾完成，這裡自動少一筆；
+   在這裡勾，月曆與近期任務也一起變（勾的是同一筆 completions／任務的 done）。
+   範圍：重複排程沒有盡頭，只看視窗內（往前 PEND_BACK 天～往後 PEND_AHEAD 天）。同一條排程／行程最多列兩筆：
+   最近一次逾期沒勾的（更早的併成「另 N 次逾期」）＋接下來的第一次——每天都有的排程若一天一筆全攤開，整頁會被同一件事洗掉。
+   視窗之後才開始的單一行程各列一筆（起始日）；近期任務不受視窗限制，逾期再久也在，沒有截止日的排最後。
+   ============================================================ */
+const PEND_BACK = 7, PEND_AHEAD = 7;
+const PEND_GROUPS = [
+  {k:'late',     label:'已逾期',   due:'late'},
+  {k:'today',    label:'今天',     due:'today'},
+  {k:'tomorrow', label:'明天',     due:'soon'},
+  {k:'soon',     label:'一週內',   due:'due'},
+  {k:'far',      label:'之後',     due:'due far'},
+  {k:'none',     label:'未定截止日', due:''}
+];
+/** 所有還沒完成的項目，每筆 {kind, row, date}；date 是這一次落在哪天（任務＝截止日，可能是 ''）。
+    more＝這一條排程／行程在更早的日子還有幾次逾期沒勾 */
+function pendingItems(){
+  const today = todayStr(), from = addDays(today, -PEND_BACK), to = addDays(today, PEND_AHEAD);
+  const per = new Map();                      // kind:id → { late:[逾期沒勾的（由舊到新）], next:視窗內的第一次 }
+  for(let d = from; d <= to; d = addDays(d, 1)){
+    for(const it of itemsOn(d)){
+      if(isDone(it.row.id, d)) continue;
+      const k = it.kind + ':' + it.row.id;
+      let g = per.get(k);
+      if(!g) per.set(k, g = { late:[], next:null });
+      const x = { ...it, date:d };
+      if(d < today) g.late.push(x); else if(!g.next) g.next = x;
+    }
+  }
+  const out = [];
+  for(const g of per.values()){
+    if(g.late.length){ const last = g.late[g.late.length - 1]; last.more = g.late.length - 1; out.push(last); }
+    if(g.next) out.push(g.next);
+  }
+  for(const e of state.events){
+    if(e.date > to && !isDone(e.id, e.date))
+      out.push({ kind:'event', row:e, date:e.date, span:eventSpan(e), dayIndex:1, first:true, last:eventSpan(e) === 1 });
+  }
+  for(const t of state.tasks) if(!t.done) out.push({ kind:'task', row:t, date:t.due_date || '' });
+  return out;
+}
+function pendBucket(it){
+  if(!it.date) return 'none';
+  const k = diffDays(it.date, todayStr());
+  return k < 0 ? 'late' : k === 0 ? 'today' : k === 1 ? 'tomorrow' : k <= 7 ? 'soon' : 'far';
+}
+/** 組內順序：重大 → 日期早的 → 有時間的先、時間早的先 → 標題 */
+function cmpPend(a, b){
+  if(!!a.row.important !== !!b.row.important) return a.row.important ? -1 : 1;
+  if(a.date !== b.date){ if(!a.date) return 1; if(!b.date) return -1; return a.date < b.date ? -1 : 1; }
+  const ta = String(a.row.time_text || '').trim(), tb = String(b.row.time_text || '').trim();
+  if(!!ta !== !!tb) return ta ? -1 : 1;
+  if(ta !== tb) return ta.localeCompare(tb);
+  return String(a.row.title).localeCompare(String(b.row.title));
+}
+/** 這一次落在哪天：逾期／今天／明天／M/D 週X */
+function pendWhen(date){
+  const k = diffDays(date, todayStr());
+  if(k < 0) return `逾期 ${-k} 天 · ${mdDate(date)} ${wdOf(date)}`;
+  if(k === 0) return '今天';
+  if(k === 1) return `明天 · ${mdDate(date)}`;
+  return `${mdDate(date)} ${wdOf(date)}`;
+}
+
+/** 某天的某筆排程／行程（任務直接用 taskCardHTML，同一張卡） */
+function occCardHTML(it, dueCls){
+  const r = it.row, ev = it.kind === 'event';
+  const col = catColor(r.category);
+  const links = Array.isArray(r.links) ? r.links : [];
+  const sp = subProgress(r, it.date);
+  const kindTag = ev
+    ? `<span class="tag ev">${it.span > 1 ? `多日行程 第 ${it.dayIndex}/${it.span} 天` : '單一行程'}</span>`
+    : `<span class="tag">${esc(whenLabel(r))}</span>`;
+  return `<div class="item task occ ${r.important?'imp':''}" data-id="${esc(r.id)}" data-k="${it.kind}" data-d="${it.date}" style="--c:${col}">
+    <button class="ck" data-act="ck" aria-label="標記完成">${CK_SVG}</button>
+    <button class="bd" data-act="open">
+      <span class="ti">${r.important?STAR:''}<span class="tt">${esc(r.title)}</span></span>
+      <span class="mt">
+        <span class="tag ${dueCls}">${SYM(ev ? (it.span > 1 ? 'bar' : 'evt') : 'rec')}${esc(pendWhen(it.date))}</span>
+        ${r.time_text?`<span class="tag time">${esc(r.time_text)}</span>`:''}
+        ${kindTag}
+        ${it.moved?`<span class="tag mv">原 ${esc(mdDate(it.origin))} 挪來</span>`:''}
+        ${it.more?`<span class="tag late">另 ${it.more} 次逾期</span>`:''}
+        ${r.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(r.category)}</span>`:''}
+        ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
+      </span>
+      ${sp.m?`<span class="pgs">
+        <span class="pips">${itemSubs(r).map(x=>`<i class="${isSubDone(r.id, x.id, it.date)?'on':''}"></i>`).join('')}</span>
+        <span class="pn ${sp.n===sp.m?'full':''}">${sp.n}/${sp.m}</span>
+      </span>`:''}
+    </button>
+  </div>`;
+}
+function wireOccCard(card){
+  const id = card.dataset.id, kind = card.dataset.k, date = card.dataset.d;
+  const find = () => kind === 'event' ? state.events.find(x=>x.id===id) : state.schedules.find(x=>x.id===id);
+  $('[data-act=ck]', card).onclick = e=>{
+    // 勾完後這一列要等一下才重畫，期間再點一次要能取消：讀目前的完成狀態
+    const done = !isDone(id, date);
+    toggleDone(id, kind, date);
+    completeWithMotion({
+      row: card, ck: e.currentTarget, titleSel:'.ti', done,
+      rerender: render, root: ()=>$('#pend-body'),
+      sel: '.item.task, .group-h', keyOf: listKey, key: 'o:' + kind + ':' + id + ':' + date
+    });
+    toast(done ? '已完成，可到月曆取消' : '已取消完成');
+  };
+  $('[data-act=open]', card).onclick = ()=>{
+    const rec = find();
+    if(rec) openDetail({kind, row:rec, mode:'calendar', date});
+  };
+}
+
+function renderPendFilters(){
+  renderChipBar($('#fl-pend'), pendingItems().map(it=>it.row),
+    state.pendFilter, state.pendImpOnly, (f,i)=>{
+      state.pendFilter = f; state.pendImpOnly = i;
+      redrawList(()=>{ renderPending(); renderPendFilters(); });
+      twTypeIn(twRows($('#pend-body')));
+    });
+}
+function renderPending(){
+  const body = $('#pend-body');
+  let rows = pendingItems();
+  const total = rows.length;
+  if(state.pendFilter)  rows = rows.filter(it=>it.row.category===state.pendFilter);
+  if(state.pendImpOnly) rows = rows.filter(it=>it.row.important);
+
+  if(!rows.length){
+    const narrowed = total && (state.pendFilter || state.pendImpOnly);
+    body.innerHTML = `<div class="empty"><b>${narrowed ? '沒有符合的未完成事項' : '全部完成了'}</b>${
+      narrowed ? '換一個條件看看。'
+        : '月曆上沒勾的事項與近期任務都會列在這裡；勾完成就會從這一頁消失。'}</div>`;
+    return;
+  }
+  let html = '';
+  for(const g of PEND_GROUPS){
+    const list = rows.filter(it=>pendBucket(it)===g.k).sort(cmpPend);
+    if(!list.length) continue;
+    html += `<section class="group">
+      <div class="group-h"><span class="t">${g.label}</span><span class="n">${list.length}</span><span class="ln"></span></div>
+      <div class="cards">${list.map(it=>it.kind === 'task' ? taskCardHTML(it.row, true) : occCardHTML(it, g.due)).join('')}</div>
+    </section>`;
+  }
+  body.innerHTML = `<div class="board">${html}</div>`;
+  wireTaskCards(body);
+  twCounters(body, 'p:');
 }
 
 /* ============================================================
@@ -4695,7 +4981,9 @@ function openTaskDetail(task){
       </a>`;
     }).join('') + `</div>`;
   }
-  body += `<p class="dv-note">任務只出現在「近期任務」，不會進月曆。</p>`;
+  body += `<p class="dv-note">${task.due_date
+    ? '任務會依截止日出現在月曆；勾選完成在月曆、近期任務、未完成三處同步。'
+    : '任務沒有截止日，所以不會出現在月曆；設了截止日就會依日期進月曆。'}</p>`;
 
   const footer = `<button class="btn dg" data-del>刪除</button><span class="sp"></span>
                   <button class="btn pri" data-edit>編輯</button>`;
@@ -5056,7 +5344,7 @@ function openDetail({kind, row, mode, date}){
       toggleSubDone(row.id, kind, b.dataset.sub, date);
       box.innerHTML = subsPanelHTML(row, kind, date);
       wireSubBtns();
-      redrawList(()=>{ renderCal(); renderDay(); });      // 後面的月曆與當日清單同步更新
+      redrawList(()=>{ if(state.page === 'cal'){ renderCal(); renderDay(); } else render(); });   // 後面的月曆（或未完成清單）同步更新
     });
   };
   wireSubBtns();
@@ -5066,11 +5354,11 @@ function openDetail({kind, row, mode, date}){
     const wasDone = isDone(row.id, date);
     toggleDone(row.id, kind, date);
     m.close();
-    // 面板收掉後，後面那一列照樣原地打勾、再沉到底部
-    const el = date === state.selDate
+    // 面板收掉後，後面那一列照樣原地打勾、再沉到底部（從「未完成」頁點開的，後面是未完成清單，整頁重畫就好）
+    const el = (state.page === 'cal' && date === state.selDate)
       ? $$('#dp-list .drow').find(e=>e.dataset.id === row.id && e.dataset.k === kind) : null;
     if(el) dayCheckMotion(row.id, kind, date, el, $('[data-act=ck]', el), wasDone);
-    else redrawList(renderCal);
+    else redrawList(state.page === 'cal' ? renderCal : render);
   };
 
   /* 單次挪動：選好日期後只寫進這條排程的 moves 例外，規則本身不動 */
@@ -5083,7 +5371,7 @@ function openDetail({kind, row, mode, date}){
       state.selDate = to;
       const d = parseYmd(to);
       state.calY = d.getFullYear(); state.calM = d.getMonth();
-      m.close(); renderCal();
+      m.close(); if(state.page === 'cal') renderCal(); else render();
     };
     mvOpen.onclick = ()=>{
       pick.classList.remove('hide');
@@ -6108,8 +6396,8 @@ function wfBuild(){
       list.push(o);
     }
 
-    // 近期任務照截止日落在當天。任務不進月曆是刻意的，但小工具是「今天要做什麼」，
-    // 少了任務就不完整，所以這裡收進來，用 k:'t' 讓小工具畫得不一樣。
+    // 近期任務照截止日落在當天（App 的月曆也是這樣放；小工具沿用 itemsOn，任務在這裡另外收進來），
+    // 用 k:'t' 讓小工具畫得不一樣。
     for(const t of state.tasks){
       if(t.done || t.due_date !== ds) continue;
       const pg = taskProgress(t);
@@ -6324,12 +6612,12 @@ function openWidgetPanel(){
 /* ============================================================
    頁面切換 / 總繪製
    ============================================================ */
-const PAGES = ['list','cal','task'];
+const PAGES = ['list','cal','task','pend'];
 /* 標頭的頁面標題（打字機主題）：英文等寬粗體跳字＋中文。糖果紙看不到它（標頭是 icon＋Checkly，
    頁面標題是內容區原本的大標題），但一樣保持最新，換裝時直接就是對的字。
    第 1 階段：中文靜態出現；打字機一個字一個字打出與塊狀游標留給動態那一階段。 */
-const PAGE_TITLE = { list:'Recurring', cal:'Calendar', task:'Upcoming', done:'Completed' };
-const PAGE_ZH    = { list:'重複排程', cal:'月曆', task:'近期任務', done:'已完成' };
+const PAGE_TITLE = { list:'Recurring', cal:'Calendar', task:'Upcoming', pend:'Pending', done:'Completed' };
+const PAGE_ZH    = { list:'重複排程', cal:'月曆', task:'近期任務', pend:'未完成', done:'已完成' };
 function setPageTitle(p, animate){
   const el = $('#ptitle'), t = PAGE_TITLE[p] || '', z = PAGE_ZH[p] || '';
   if(!el){ twHeadReset(z); return; }
@@ -6352,10 +6640,11 @@ function setPage(p){
   $('#p-list').classList.toggle('hide', p!=='list');
   $('#p-cal').classList.toggle('hide',  p!=='cal');
   $('#p-task').classList.toggle('hide', p!=='task');
+  $('#p-pend').classList.toggle('hide', p!=='pend');
   $('#p-done').classList.toggle('hide', p!=='done');
   $('#fab').classList.toggle('hide', p==='done');
   const fabT = $('#fab-t');
-  const fabLabel = p==='list' ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';
+  const fabLabel = p==='list' ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';   // 任務頁與未完成頁都是新增任務
   const fabCur = fabT._twTo != null ? fabT._twTo : fabT.textContent;
   if(fabCur !== fabLabel && moving && isTypewriter()) twScr(fabT, fabLabel, { duration: 380 });   // 打字機：FAB 的字跳成新字
   else if(fabCur !== fabLabel){
@@ -6496,6 +6785,7 @@ function render(){
   if(state.page==='list'){ renderFilters(); renderList(); }
   else if(state.page==='cal'){ renderCal(); }
   else if(state.page==='task'){ renderTaskFilters(); renderTasks(); }
+  else if(state.page==='pend'){ renderPendFilters(); renderPending(); }
   else { renderDone(); }
   setSync();
 }
@@ -6787,7 +7077,7 @@ async function startApp(){
   $('#btn-menu').onclick = e=>{ e.stopPropagation(); openMenu(); };
   $('#fab').onclick = ()=>{
     if(state.page==='list') openScheduleForm(null);
-    else if(state.page==='task') openTaskForm(null);
+    else if(state.page==='task' || state.page==='pend') openTaskForm(null);
     else openEventForm(null, state.selDate);
   };
   $('#go-done').onclick   = ()=>setPage('done');
