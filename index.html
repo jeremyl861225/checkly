@@ -1153,18 +1153,18 @@ html[data-skin="typewriter"] .nav button::after{border-radius:0}
 /* ---------- 頁首：標題在標頭，內容區只剩動作（近期任務的「已完成 N」、已完成頁的返回） ---------- */
 html[data-skin="typewriter"] .page-head{display:flex;justify-content:flex-end;align-items:center;margin:0 0 12px;min-height:0}
 html[data-skin="typewriter"] .page-head h1{display:none}
-html[data-skin="typewriter"] #p-list .page-head, html[data-skin="typewriter"] #p-cal .page-head,
+html[data-skin="typewriter"] #p-cal .page-head,
 html[data-skin="typewriter"] #p-pend .page-head{display:none}
-html[data-skin="typewriter"] #p-done .page-head{justify-content:flex-start}
+html[data-skin="typewriter"] #p-done .page-head, html[data-skin="typewriter"] #p-ended .page-head{justify-content:flex-start}
 html[data-skin="typewriter"] .tbtn{border:0;background:none;border-radius:0;box-shadow:none;height:auto;min-height:32px;
   padding:4px 8px;font:400 13px/1.2 var(--font);color:var(--accent-ink)}
 html[data-skin="typewriter"] .tbtn:hover{background:none;border:0;color:var(--ink)}
 html[data-skin="typewriter"] .ph-act svg{display:none}
-html[data-skin="typewriter"] #go-done{background:var(--inv-bg);color:var(--inv-ink);font-weight:700;gap:0}
-html[data-skin="typewriter"] #go-done:hover{background:var(--inv-bg);color:var(--inv-ink)}
-html[data-skin="typewriter"] #go-done .nn{background:none;border-radius:0;padding:0 0 0 1ch;font-size:13px;font-weight:700;color:inherit}
-html[data-skin="typewriter"] #back-task{padding-left:0}
-html[data-skin="typewriter"] #back-task::before{content:"←";margin-right:1ch}
+html[data-skin="typewriter"] #go-done, html[data-skin="typewriter"] #go-ended{background:var(--inv-bg);color:var(--inv-ink);font-weight:700;gap:0}
+html[data-skin="typewriter"] #go-done:hover, html[data-skin="typewriter"] #go-ended:hover{background:var(--inv-bg);color:var(--inv-ink)}
+html[data-skin="typewriter"] #go-done .nn, html[data-skin="typewriter"] #go-ended .nn{background:none;border-radius:0;padding:0 0 0 1ch;font-size:13px;font-weight:700;color:inherit}
+html[data-skin="typewriter"] #back-task, html[data-skin="typewriter"] #back-list{padding-left:0}
+html[data-skin="typewriter"] #back-task::before, html[data-skin="typewriter"] #back-list::before{content:"←";margin-right:1ch}
 
 /* ---------- 篩選：純文字，選中＝反白 ---------- */
 html[data-skin="typewriter"] .filters{gap:14px;padding:2px 2px 16px;margin:0 0 4px}
@@ -2016,6 +2016,10 @@ html[data-skin="typewriter"] .top-sp{flex:0 0 0}
     <section id="p-list" class="wrap">
       <div class="page-head">
         <h1>重複排程</h1>
+        <button class="tbtn ph-act" id="go-ended">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>
+          已結束<span class="nn" id="ended-n">0</span>
+        </button>
       </div>
       <div class="filters" id="fl-list"></div>
       <div id="list-body"></div>
@@ -2094,6 +2098,18 @@ html[data-skin="typewriter"] .top-sp{flex:0 0 0}
         </button>
       </div>
       <div id="done-body"></div>
+    </section>
+
+    <!-- PAGE 1b：已結束（由「重複排程」右上角進入；過了到期日的排程自動移到這裡） -->
+    <section id="p-ended" class="wrap hide">
+      <div class="page-head">
+        <h1>已結束</h1>
+        <button class="tbtn ph-act" id="back-list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          重複排程
+        </button>
+      </div>
+      <div id="ended-body"></div>
     </section>
   </main>
 
@@ -2870,6 +2886,21 @@ function enqueue(op){
   saveQueue(); setSync();
   flushQueue();
 }
+/** 一次排很多筆（匯入還原、刪掉帶著大量完成紀錄的項目）：時間戳一樣嚴格遞增，但整批只存一次、只叫一次送出。
+    逐筆 enqueue 每一筆都要重讀、重寫整個佇列，兩千筆會讓畫面卡住好幾秒 */
+function enqueueMany(ops){
+  if(!ops.length) return;
+  localRev++;
+  let at = Math.max(Date.now(), mergedQueue().reduce((mx, q) => Math.max(mx, q.at || 0), 0) + 1);
+  for(const op of ops){
+    if(op.row) op.row = JSON.parse(JSON.stringify(op.row));
+    op.qid = newQid();
+    op.at = at++;
+    queue.push(op);
+  }
+  saveQueue(); setSync();
+  flushQueue();
+}
 /** 送出一筆。失敗時丟出帶 HTTP status 的錯誤（status 0 = 根本沒送到：離線、逾時、沒有登入憑證） */
 async function applyOp(op){
   let r = null;
@@ -3161,9 +3192,9 @@ function deleteSchedule(id){
   const goneSub = state.subDone.filter(x=>x.item_id===id);
   state.subDone = state.subDone.filter(x=>x.item_id!==id);
   rebuildDoneIndex(); rebuildSubIndex(); saveCache();
-  enqueue({type:'delete', table:'schedules', id});
-  for(const c of gone) enqueue({type:'delete', table:'completions', id:c.id});
-  for(const x of goneSub) enqueue({type:'delete', table:'sub_done', id:x.id});
+  enqueueMany([{type:'delete', table:'schedules', id},
+    ...gone.map(c=>({type:'delete', table:'completions', id:c.id})),
+    ...goneSub.map(x=>({type:'delete', table:'sub_done', id:x.id}))]);
 }
 function saveEvent(row){
   row.user_id = session.user.id;
@@ -3177,9 +3208,9 @@ function deleteEvent(id){
   const goneSub = state.subDone.filter(x=>x.item_id===id);
   state.subDone = state.subDone.filter(x=>x.item_id!==id);
   rebuildDoneIndex(); rebuildSubIndex(); saveCache();
-  enqueue({type:'delete', table:'events', id});
-  for(const c of gone) enqueue({type:'delete', table:'completions', id:c.id});
-  for(const x of goneSub) enqueue({type:'delete', table:'sub_done', id:x.id});
+  enqueueMany([{type:'delete', table:'events', id},
+    ...gone.map(c=>({type:'delete', table:'completions', id:c.id})),
+    ...goneSub.map(x=>({type:'delete', table:'sub_done', id:x.id}))]);
 }
 function saveTask(row){
   row.user_id = session.user.id;
@@ -3296,14 +3327,36 @@ function renderChipBar(box, rows, filter, impOnly, onChange){
     else   onChange(filter===v ? null : v, impOnly);
   });
 }
+/** 篩選的選項不見了（唯一的重大排程過了到期日、只剩已結束的在用的舊類別、任務歸檔了）→ 回到「全部」，
+    不然篩選還開著、畫面上卻沒有鈕可以取消 */
+function keepFilter(rows, filter, impOnly){
+  const cats = new Set(state.categories.map(c=>c.name));
+  for(const r of rows) if(r.category) cats.add(r.category);
+  return { filter: filter !== null && !cats.has(filter) ? null : filter,
+           impOnly: !!impOnly && rows.some(r=>r.important) };
+}
+function syncListFilter(){
+  const k = keepFilter(state.schedules.filter(s=>!schedEnded(s)), state.filter, state.impOnly);
+  state.filter = k.filter; state.impOnly = k.impOnly;
+}
+function syncPendFilter(items){
+  const k = keepFilter(items.map(it=>it.row), state.pendFilter, state.pendImpOnly);
+  state.pendFilter = k.filter; state.pendImpOnly = k.impOnly;
+}
+function syncTaskFilter(){
+  const k = keepFilter(state.tasks.filter(t=>!isArchived(t)), state.taskFilter, state.taskImpOnly);
+  state.taskFilter = k.filter; state.taskImpOnly = k.impOnly;
+}
 function renderFilters(){
-  renderChipBar($('#fl-list'), state.schedules, state.filter, state.impOnly, (f,i)=>{
+  syncListFilter();
+  renderChipBar($('#fl-list'), state.schedules.filter(s=>!schedEnded(s)), state.filter, state.impOnly, (f,i)=>{
     state.filter = f; state.impOnly = i;
     renderList(); renderFilters();
     twTypeIn(twRows($('#list-body'))); twLit();      // 打字機：清單重畫時打字進場
   });
 }
 function renderTaskFilters(){
+  syncTaskFilter();
   renderChipBar($('#fl-task'), state.tasks.filter(t=>!isArchived(t)),
     state.taskFilter, state.taskImpOnly, (f,i)=>{
       state.taskFilter = f; state.taskImpOnly = i;
@@ -3355,10 +3408,13 @@ function nextStubHTML(s){
   return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(fmtDW(d))}">下次 ${rel}</span>`;
 }
 
+/** 過了到期日（到期日當天還算進行中）→ 從「重複排程」移到「已結束」 */
+const schedEnded = s => !!(s.end_date && s.end_date < todayStr());
+
 function itemCardHTML(s){
   const links = Array.isArray(s.links) ? s.links : [];
   const today = todayStr();
-  const ended   = s.end_date && s.end_date < today;
+  const ended   = schedEnded(s);
   const pending = s.start_date && s.start_date > today;
   return `<button class="item ${ended?'ended':''} ${s.important?'imp':''}" data-id="${esc(s.id)}">
     <span class="bd">
@@ -3372,23 +3428,28 @@ function itemCardHTML(s){
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
       ${s.description?`<span class="desc">${esc(s.description)}</span>`:''}
-      <span class="cadrow">${cadenceHTML(s).html}${ended ? '' : nextStubHTML(s)}</span>
+      ${ended ? '' : `<span class="cadrow">${cadenceHTML(s).html}${nextStubHTML(s)}</span>`}
     </span>
   </button>`;
 }
 
 function renderList(){
+  updateEndedCount();
+  syncListFilter();
   const body = $('#list-body');
-  let rows = state.schedules.slice();
+  let rows = state.schedules.filter(s=>!schedEnded(s));
   if(state.filter)  rows = rows.filter(s=>s.category===state.filter);
   if(state.impOnly) rows = rows.filter(s=>s.important);
 
   if(!rows.length){
     const narrowed = state.filter || state.impOnly;
+    const anyEnded = !narrowed && state.schedules.some(schedEnded);
     body.innerHTML = `<div class="empty"><b>${
       state.impOnly ? '沒有符合的重大事件'
-      : state.filter ? '這個類別還沒有排程' : '還沒有任何重複排程'}</b>
+      : state.filter ? '這個類別還沒有排程'
+      : anyEnded ? '目前沒有進行中的排程' : '還沒有任何重複排程'}</b>
       ${narrowed ? '換一個條件看看，或新增一筆。'
+        : anyEnded ? '過了到期日的都在右上角「已結束」；打開後把到期日往後延就會回到這裡。'
         : '點右下角「新增排程」，建立每日／每週／每月或自訂間隔要做的事。'}</div>`;
     return;
   }
@@ -3419,11 +3480,51 @@ function renderList(){
     </section>`;
   }
   body.innerHTML = `<div class="board">${html}</div>`;
+  wireSchedCards(body);
+  twCounters(body, 'l:');
+}
+function wireSchedCards(body){
   $$('.item', body).forEach(b=>b.onclick = ()=>{
     const s = state.schedules.find(x=>x.id===b.dataset.id);
     if(s) openDetail({kind:'schedule', row:s, mode:'edit'});
   });
-  twCounters(body, 'l:');
+}
+function updateEndedCount(){
+  const el = $('#ended-n');
+  if(!el) return;
+  const n = state.schedules.filter(schedEnded).length;
+  el.textContent = n;
+  el.classList.toggle('hide', !n);
+  twCount(el, 'ended-n');
+}
+/* ============================================================
+   繪製：頁面一的子頁「已結束」
+   過了到期日的重複排程。依結束月份分組、結束得晚的在前；打開一樣能編輯與刪除，
+   把到期日往後延（或清掉）就自動回到「重複排程」。
+   ============================================================ */
+function renderEnded(){
+  updateEndedCount();
+  const body = $('#ended-body');
+  const rows = state.schedules.filter(schedEnded).sort((a, b)=>
+    a.end_date !== b.end_date ? (a.end_date < b.end_date ? 1 : -1) : String(a.title).localeCompare(String(b.title)));
+  if(!rows.length){
+    body.innerHTML = `<div class="empty"><b>還沒有已結束的排程</b>
+      設了到期日的重複排程，過了到期日會自動移到這裡。</div>`;
+    return;
+  }
+  const groups = [];
+  for(const s of rows){
+    const key = s.end_date.slice(0, 7);
+    let g = groups.find(x=>x.key===key);
+    if(!g) groups.push(g = { key, label: `${key.slice(0,4)} 年 ${Number(key.slice(5,7))} 月結束`, list:[] });
+    g.list.push(s);
+  }
+  body.innerHTML = `<div class="board">${groups.map(g=>`<section class="group">
+      <div class="group-h"><span class="t">${g.label}</span><span class="n">${g.list.length}</span><span class="ln"></span></div>
+      <div class="cards">${g.list.map(itemCardHTML).join('')}</div>
+    </section>`).join('')}</div>`;
+  wireSchedCards(body);
+  twCounters(body, 'e:');
 }
 
 /** 某一天之內的顯示順序，月曆格子與當日面板共用：
@@ -4727,6 +4828,7 @@ function updateDoneCount(){
 
 function renderTasks(){
   updateDoneCount();
+  syncTaskFilter();
   const body = $('#task-body');
   let rows = state.tasks.filter(t=>!isArchived(t));
   if(state.taskFilter)  rows = rows.filter(t=>t.category===state.taskFilter);
@@ -4891,7 +4993,9 @@ function wireOccCard(card){
 }
 
 function renderPendFilters(items){
-  renderChipBar($('#fl-pend'), (items || pendingItems()).map(it=>it.row),
+  items = items || pendingItems();
+  syncPendFilter(items);
+  renderChipBar($('#fl-pend'), items.map(it=>it.row),
     state.pendFilter, state.pendImpOnly, (f,i)=>{
       state.pendFilter = f; state.pendImpOnly = i;
       redrawList(()=>{ renderPending(); renderPendFilters(); });
@@ -4901,6 +5005,7 @@ function renderPendFilters(items){
 function renderPending(items){
   const body = $('#pend-body');
   let rows = items || pendingItems();
+  syncPendFilter(rows);
   const total = rows.length;
   if(state.pendFilter)  rows = rows.filter(it=>it.row.category===state.pendFilter);
   if(state.pendImpOnly) rows = rows.filter(it=>it.row.important);
@@ -5690,7 +5795,10 @@ function openScheduleForm(existing){
     row.moves = pruneMoves(row);
     saveSchedule(row);
     m.close(); render();
-    toast(existing ? '已儲存' : '已新增排程');
+    const nowEnded = schedEnded(row), wasEnded = !!existing && schedEnded(existing);
+    toast(!existing ? (nowEnded ? '已新增排程，已移到「已結束」' : '已新增排程')
+      : nowEnded && !wasEnded ? '已儲存，已移到「已結束」'
+      : !nowEnded && wasEnded ? '已儲存，已移回「重複排程」' : '已儲存');
   };
 }
 
@@ -6121,6 +6229,7 @@ function normTask(t){
     links: normLinks(t.links)
   };
 }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function parseImport(data){
   if(!data || typeof data !== 'object') return null;
   const sch = (Array.isArray(data.schedules) ? data.schedules : []).map(normSchedule).filter(Boolean);
@@ -6132,11 +6241,30 @@ function parseImport(data){
   for(const e of evt) if(e.category && !cat.includes(e.category)) cat.push(e.category);
   for(const t of tsk) if(t.category && !cat.includes(t.category)) cat.push(t.category);
   if(!sch.length && !evt.length && !tsk.length) return null;
-  // 子事項的逐日勾選：只收那些項目真的還在的，避免匯進孤兒紀錄
-  const ids = new Set([...sch, ...evt].map(x=>x.id));
-  const sd = (Array.isArray(data.subDone) ? data.subDone : []).filter(x=>
-    x && ids.has(x.item_id) && x.sub_id && isYmd(x.occur_date));
-  return { schedules:sch, events:evt, tasks:tsk, categories:cat, subDone:sd,
+  // 子事項的逐日勾選、勾選完成紀錄（匯出備份裡有）：
+  // - 只收項目真的在檔案裡的，避免匯進孤兒紀錄；日期要是真的日期（2026-02-30 伺服器會退回）
+  // - 同一筆（項目＋日期，子事項再加 sub_id）只留一筆；種類看項目屬於哪一邊，不信檔案裡寫的
+  // - 編號不是 UUID、或在檔案裡重複的，先記成 null，套用時再給新的
+  const kindOf = new Map([...sch.map(x=>[x.id,'schedule']), ...evt.map(x=>[x.id,'event'])]);
+  const realYmd = v => isYmd(v) && ymd(parseYmd(v)) === v;
+  const idSeen = new Set();
+  const cleanId = v => { const k = String(v||'').toLowerCase(); if(!UUID_RE.test(k) || idSeen.has(k)) return null; idSeen.add(k); return k; };   // uuid 不分大小寫
+  const pick = (list, keyOf) => {
+    const seen = new Set();
+    return (Array.isArray(list) ? list : []).filter(x=>{
+      if(!x || !kindOf.has(x.item_id) || !realYmd(x.occur_date)) return false;
+      const k = keyOf(x);
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  };
+  const sd = pick((Array.isArray(data.subDone) ? data.subDone : []).filter(x=>x && x.sub_id),
+                  x=>x.item_id + '|' + x.sub_id + '|' + x.occur_date)
+    .map(x=>({ id: cleanId(x.id), item_id: x.item_id, item_kind: kindOf.get(x.item_id),
+               sub_id: String(x.sub_id), occur_date: x.occur_date }));
+  const cp = pick(data.completions, x=>doneKey(x.item_id, x.occur_date))
+    .map(x=>({ id: cleanId(x.id), item_id: x.item_id, item_kind: kindOf.get(x.item_id), occur_date: x.occur_date }));
+  return { schedules:sch, events:evt, tasks:tsk, categories:cat, subDone:sd, completions:cp,
            source:String(data.source||'') };
 }
 function applyImport(p){
@@ -6157,15 +6285,31 @@ function applyImport(p){
     (state.tasks.some(x=>x.id===t.id) ? (updT++) : (addT++));
     saveTask(t);
   }
+  // 逐日勾選（子事項、完成紀錄）：這一天已經勾過的就不動。編號沿用備份裡的（刪掉再還原會是同一筆），
+  // 但本機已經有同編號的另一筆（例如備份之後那一次改過期，紀錄跟著搬走了）就給新的，免得蓋掉它
+  const ops = [];
+  const usedSd = new Set(state.subDone.map(x=>String(x.id).toLowerCase()));
   for(const x of (p.subDone||[])){
     if(isSubDone(x.item_id, x.sub_id, x.occur_date)) continue;
-    const row = { id: x.id || uid(), user_id: session.user.id, item_id: x.item_id,
-                  item_kind: x.item_kind === 'schedule' ? 'schedule' : 'event',
-                  sub_id: String(x.sub_id), occur_date: x.occur_date };
+    const row = { id: x.id && !usedSd.has(x.id) ? x.id : uid(), user_id: session.user.id, item_id: x.item_id,
+                  item_kind: x.item_kind, sub_id: x.sub_id, occur_date: x.occur_date };
+    usedSd.add(row.id);
     state.subDone.push(row);
-    enqueue({type:'upsert', table:'sub_done', row});
+    ops.push({type:'upsert', table:'sub_done', row});
   }
-  rebuildSubIndex(); saveCache();
+  let addC = 0;
+  const usedC = new Set(state.completions.map(c=>String(c.id).toLowerCase()));
+  for(const x of (p.completions||[])){
+    if(isDone(x.item_id, x.occur_date)) continue;
+    const row = { id: x.id && !usedC.has(x.id) ? x.id : uid(), user_id: session.user.id, item_id: x.item_id,
+                  item_kind: x.item_kind, occur_date: x.occur_date };
+    usedC.add(row.id);
+    state.completions.push(row);
+    ops.push({type:'upsert', table:'completions', row});
+    addC++;
+  }
+  enqueueMany(ops);
+  rebuildDoneIndex(); rebuildSubIndex(); saveCache();
   render();
   const bits = [];
   if(addS) bits.push(`新增 ${addS} 筆排程`);
@@ -6175,6 +6319,7 @@ function applyImport(p){
   if(addT) bits.push(`新增 ${addT} 筆任務`);
   if(updT) bits.push(`更新 ${updT} 筆任務`);
   if(newCat) bits.push(`新增 ${newCat} 個類別`);
+  if(addC) bits.push(`還原 ${addC} 筆完成紀錄`);
   toast(bits.length ? '匯入完成：' + bits.join('、') : '沒有任何變更');
 }
 function openImportPreview(p, label){
@@ -6191,12 +6336,14 @@ function openImportPreview(p, label){
   const dupe = p.schedules.filter(s=>state.schedules.some(x=>x.id===s.id)).length
              + p.events.filter(e=>state.events.some(x=>x.id===e.id)).length
              + (p.tasks||[]).filter(t=>state.tasks.some(x=>x.id===t.id)).length;
+  const willC = (p.completions||[]).filter(x=>!isDone(x.item_id, x.occur_date)).length;   // 已經勾過的會略過
   const m = modal({
     title:'確認匯入',
     body:`<p class="hint" style="margin:0 0 12px">
         來源：${esc(label)}${p.source?`<br>${esc(p.source)}`:''}<br>
         共 <b>${p.schedules.length}</b> 筆重複排程、<b>${p.events.length}</b> 筆單一行程、
-        <b>${(p.tasks||[]).length}</b> 筆任務、<b>${p.categories.length}</b> 個類別。
+        <b>${(p.tasks||[]).length}</b> 筆任務、<b>${p.categories.length}</b> 個類別${
+        willC?`，並還原 <b>${willC}</b> 筆完成紀錄`:''}。
         ${dupe?`其中 <b>${dupe}</b> 筆已存在，會被覆蓋成檔案裡的版本。`:'不會覆蓋你現有的資料。'}
       </p>
       <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>`,
@@ -6624,8 +6771,8 @@ const PAGES = ['list','cal','task','pend'];
 /* 標頭的頁面標題（打字機主題）：英文等寬粗體跳字＋中文。糖果紙看不到它（標頭是 icon＋Checkly，
    頁面標題是內容區原本的大標題），但一樣保持最新，換裝時直接就是對的字。
    第 1 階段：中文靜態出現；打字機一個字一個字打出與塊狀游標留給動態那一階段。 */
-const PAGE_TITLE = { list:'Recurring', cal:'Calendar', task:'Upcoming', pend:'Pending', done:'Completed' };
-const PAGE_ZH    = { list:'重複排程', cal:'月曆', task:'近期任務', pend:'未完成', done:'已完成' };
+const PAGE_TITLE = { list:'Recurring', cal:'Calendar', task:'Upcoming', pend:'Pending', done:'Completed', ended:'Ended' };
+const PAGE_ZH    = { list:'重複排程', cal:'月曆', task:'近期任務', pend:'未完成', done:'已完成', ended:'已結束' };
 function setPageTitle(p, animate){
   const el = $('#ptitle'), t = PAGE_TITLE[p] || '', z = PAGE_ZH[p] || '';
   if(!el){ twHeadReset(z); return; }
@@ -6641,7 +6788,8 @@ function setPage(p){
   const moving = from !== p && !reduceMotion();
   state.page = p;
   setPageTitle(p, from !== p);
-  const nav = p==='done' ? 'task' : p;      // 「已完成」是近期任務的子頁，分頁列仍亮在近期任務
+  // 「已完成」是近期任務的子頁、「已結束」是重複排程的子頁，分頁列仍亮在母頁
+  const nav = p==='done' ? 'task' : p==='ended' ? 'list' : p;
   const navFrom = $('#nav button.on'), navTo = $(`#nav button[data-p="${nav}"]`);
   if(moving && navFrom && navTo && navFrom !== navTo) navMove(navFrom, navTo);
   $$('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.p===nav));
@@ -6650,9 +6798,10 @@ function setPage(p){
   $('#p-task').classList.toggle('hide', p!=='task');
   $('#p-pend').classList.toggle('hide', p!=='pend');
   $('#p-done').classList.toggle('hide', p!=='done');
-  $('#fab').classList.toggle('hide', p==='done');
+  $('#p-ended').classList.toggle('hide', p!=='ended');
+  $('#fab').classList.toggle('hide', p==='done' || p==='ended');
   const fabT = $('#fab-t');
-  const fabLabel = p==='list' ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';   // 任務頁與未完成頁都是新增任務
+  const fabLabel = (p==='list' || p==='ended') ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';   // 任務頁與未完成頁都是新增任務
   const fabCur = fabT._twTo != null ? fabT._twTo : fabT.textContent;
   if(fabCur !== fabLabel && moving && isTypewriter()) twScr(fabT, fabLabel, { duration: 380 });   // 打字機：FAB 的字跳成新字
   else if(fabCur !== fabLabel){
@@ -6794,6 +6943,7 @@ function render(){
   else if(state.page==='cal'){ renderCal(); }
   else if(state.page==='task'){ renderTaskFilters(); renderTasks(); }
   else if(state.page==='pend'){ const it = pendingItems(); renderPendFilters(it); renderPending(it); }
+  else if(state.page==='ended'){ renderEnded(); }
   else { renderDone(); }
   setSync();
 }
@@ -7090,6 +7240,8 @@ async function startApp(){
   };
   $('#go-done').onclick   = ()=>setPage('done');
   $('#back-task').onclick = ()=>setPage('task');
+  $('#go-ended').onclick  = ()=>setPage('ended');
+  $('#back-list').onclick = ()=>setPage('list');
   $('#cal-prev').onclick = ()=>{ shiftMonth(-1); };
   $('#cal-next').onclick = ()=>{ shiftMonth(1); };
   $('#cal-today').onclick = ()=>{
