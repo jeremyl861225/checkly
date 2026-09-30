@@ -2167,10 +2167,9 @@ const daysInMonth = (y,m) => new Date(y,m+1,0).getDate();
 const diffDays = (a,b) => Math.round((parseYmd(a) - parseYmd(b))/86400000);
 const addDays = (s,n) => { const d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); };
 const fmtDate = s => { const d=parseYmd(s); return `${d.getMonth()+1} 月 ${d.getDate()} 日`; };
-const mdDate  = s => { const d=parseYmd(s); return `${d.getMonth()+1}/${d.getDate()}`; };
 const wdOf    = s => `週${WD[parseYmd(s).getDay()]}`;
-/** 清單、標籤裡的日期一律這個格式：11/10 週二（詳細內容與對話框裡的完整句子仍寫「11 月 10 日」） */
-const mdw     = s => `${mdDate(s)} ${wdOf(s)}`;
+/** 全 App 顯示日期的統一寫法：11 月 10 日週二（清單、標籤、月曆標題、詳細內容、對話框都用它） */
+const fmtDW   = s => `${fmtDate(s)}${wdOf(s)}`;
 
 /* ---------- 圖示 ----------
    全站只用畫出來的 SVG，統一 24 格線、圓端點；不用 ★ ▸ ✓ 這類符號字，
@@ -2490,16 +2489,16 @@ function whenLabel(s){
 /** 起訖日文字，沒有結束日就只寫起始 */
 function rangeLabel(s){
   if(!s.start_date && !s.end_date) return '';
-  const a = s.start_date ? mdDate(s.start_date) : '';
+  const a = s.start_date ? fmtDW(s.start_date) : '';
   if(!s.end_date) return a ? `${a} 起` : '';
-  return `${a} – ${mdDate(s.end_date)}`;
+  return `${a} – ${fmtDW(s.end_date)}`;
 }
 /* ---------- 單一行程（可跨多日） ---------- */
 function eventEnd(e){ return e.end_date && e.end_date > e.date ? e.end_date : e.date; }
 function eventSpan(e){ return diffDays(eventEnd(e), e.date) + 1; }
 function eventCovers(e, dateStr){ return dateStr >= e.date && dateStr <= eventEnd(e); }
 function eventWhenLabel(e){
-  const w = d => `${fmtDate(d)}（週${WD[parseYmd(d).getDay()]}）`;
+  const w = fmtDW;
   return eventSpan(e) > 1 ? `${w(e.date)} – ${w(eventEnd(e))}` : w(e.date);
 }
 /** 某日期的所有項目（排程 + 單一行程），已排序 */
@@ -2591,11 +2590,11 @@ function daysToArchive(t){
 function dueInfo(t){
   if(!t.due_date) return { k:'none', short:'', label:'未定截止日' };
   const k = diffDays(t.due_date, todayStr());
-  if(k <  0) return { k:'late',  short:`逾期 ${-k} 天`, label:`逾期 ${-k} 天 · ${mdw(t.due_date)}` };
+  if(k <  0) return { k:'late',  short:`逾期 ${-k} 天`, label:`逾期 ${-k} 天 · ${fmtDW(t.due_date)}` };
   if(k === 0) return { k:'today', short:'今天到期',   label:'今天到期' };
-  if(k === 1) return { k:'soon',  short:'明天到期',   label:`明天到期 · ${mdw(t.due_date)}` };
-  if(k <=  7) return { k:'soon',  short:`${k} 天後`,  label:`${k} 天後 · ${mdw(t.due_date)}` };
-  return { k:'far', short:'', label:mdw(t.due_date) };
+  if(k === 1) return { k:'soon',  short:'明天到期',   label:`明天到期 · ${fmtDW(t.due_date)}` };
+  if(k <=  7) return { k:'soon',  short:`${k} 天後`,  label:`${k} 天後 · ${fmtDW(t.due_date)}` };
+  return { k:'far', short:'', label:fmtDW(t.due_date) };
 }
 const taskBucket = t => t.done ? 'did' : dueInfo(t).k;
 /** 未完成：重大 → 截止日早的 → 標題 */
@@ -3350,8 +3349,10 @@ function nextStubHTML(s){
   const d = nextOccurrence(s);
   if(!d) return '';
   const k = diffDays(d, todayStr());
-  const rel = k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : k < 14 ? `${k} 天後` : mdw(d);
-  return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(mdw(d))}">下次 ${rel}</span>`;
+  // 這一欄很窄放不下完整日期，遠的用相對時間（完整日期在 title）
+  const rel = k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : k < 14 ? `${k} 天後`
+            : k < 60 ? `${Math.round(k / 7)} 週後` : `${Math.round(k / 30)} 個月後`;
+  return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(fmtDW(d))}">下次 ${rel}</span>`;
 }
 
 function itemCardHTML(s){
@@ -3364,9 +3365,9 @@ function itemCardHTML(s){
       <span class="ti">${s.important?STAR:''}${esc(s.title)}</span>
       <span class="mt">
         <span class="tag time">${esc(whenLabel(s))}${s.time_text?' · '+esc(s.time_text):''}</span>
-        ${ended?`<span class="tag over">已結束 ${esc(mdw(s.end_date))}</span>`
+        ${ended?`<span class="tag over">已結束 ${esc(fmtDW(s.end_date))}</span>`
           :pending?`<span class="tag soon">${esc(rangeLabel(s))}</span>`
-          :s.end_date?`<span class="tag">至 ${esc(mdw(s.end_date))}</span>`:''}
+          :s.end_date?`<span class="tag">至 ${esc(fmtDW(s.end_date))}</span>`:''}
         ${s.category?`<span class="tag"><i class="cd" style="background:${catColor(s.category)};color:${catColor(s.category)}"></i>${esc(s.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
@@ -3530,7 +3531,7 @@ function renderCal(){
         if(!isDone(s.e.id, addDays(s.segStart, k))){ allDone = false; break; }
       }
       const style = `grid-column:${s.col+1}/span ${s.len};grid-row:${s.lane+1};--c:${col}`;
-      const label = `${s.e.title}（${fmtDate(s.e.date)} – ${fmtDate(eventEnd(s.e))}）`;
+      const label = `${s.e.title}（${fmtDW(s.e.date)} – ${fmtDW(eventEnd(s.e))}）`;
       return `<button class="bar-ev ${s.openL?'openL':''} ${s.openR?'openR':''} ${allDone?'done':''} ${s.e.important?'imp':''}"
         style="${style}" data-e="${esc(s.e.id)}" data-d="${s.segStart}"
         title="${esc(label)}" aria-label="${esc(label)}"></button>`;
@@ -4563,8 +4564,8 @@ function renderDay(){
   const ds = state.selDate, d = parseYmd(ds);
   const dayChanged = lastDayKey !== null && lastDayKey !== ds;
   lastDayKey = ds;
-  $('#dp-d1').textContent = `${d.getMonth()+1} 月 ${d.getDate()} 日`;
-  $('#dp-d2').textContent = `週${WD[d.getDay()]}${ds===todayStr()?' · 今天':''}`;
+  $('#dp-d1').textContent = fmtDW(ds);
+  $('#dp-d2').textContent = ds===todayStr() ? '今天' : '';
   const items = dayItems(ds);
   const done = items.filter(it=>itemDone(it, ds)).length;
   $('#dp-prog').textContent = items.length ? `${done}/${items.length}` : '';
@@ -4590,7 +4591,7 @@ function renderDay(){
       ? `<span class="tag ev">${it.span>1?`${SYM('bar')}多日行程 第 ${it.dayIndex}/${it.span} 天`:`${SYM('evt')}單一行程`}</span>`
       : tk ? `<span class="tag tk">${SYM('tsk')}近期任務 · 當日截止</span>`
       : `<span class="tag">${SYM('rec')}${esc(whenLabel(r))}</span>`)
-      + (it.moved ? `<span class="tag mv">原 ${esc(mdw(it.origin))} 挪來</span>` : '');
+      + (it.moved ? `<span class="tag mv">原 ${esc(fmtDW(it.origin))} 挪來</span>` : '');
     // 子事項完成度：排程／行程是「那一天」的，任務是它自己的
     const sp = tk ? taskProgress(r) : subProgress(r, ds);
     const pips = tk ? taskSubs(r).map(x=>`<i class="${x.done?'on':''}"></i>`)
@@ -4667,7 +4668,7 @@ function taskCardHTML(t, mark){
       ${(!t.done && nx)?`<span class="nextsub">${SVG(IC.next)}<em>${esc(nx.title)}</em></span>`:''}
       <span class="mt">
         ${t.done
-          ? `<span class="tag did">${SVG(IC.check)}${dd?esc(mdw(dd))+' 完成':'已完成'}</span>`
+          ? `<span class="tag did">${SVG(IC.check)}${dd?esc(fmtDW(dd))+' 完成':'已完成'}</span>`
           : `<span class="tag ${DUE_CLS[di.k]}">${mark?SYM('tsk'):''}${esc(di.label)}</span>`}
         ${t.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(t.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
@@ -4834,11 +4835,11 @@ function cmpPend(a, b){
 /** 這一次落在哪天：跟任務的 dueInfo() 同一套寫法（逾期 N 天 · 日期／今天／明天 · 日期／N 天後 · 日期／日期） */
 function pendWhen(date){
   const k = diffDays(date, todayStr());
-  if(k < 0) return `逾期 ${-k} 天 · ${mdw(date)}`;
+  if(k < 0) return `逾期 ${-k} 天 · ${fmtDW(date)}`;
   if(k === 0) return '今天';
-  if(k === 1) return `明天 · ${mdw(date)}`;
-  if(k <= 7) return `${k} 天後 · ${mdw(date)}`;
-  return mdw(date);
+  if(k === 1) return `明天 · ${fmtDW(date)}`;
+  if(k <= 7) return `${k} 天後 · ${fmtDW(date)}`;
+  return fmtDW(date);
 }
 
 /** 某天的某筆排程／行程（任務直接用 taskCardHTML，同一張卡） */
@@ -4858,7 +4859,7 @@ function occCardHTML(it, dueCls){
         <span class="tag ${dueCls}">${SYM(ev ? (it.span > 1 ? 'bar' : 'evt') : 'rec')}${esc(pendWhen(it.date))}</span>
         ${r.time_text?`<span class="tag time">${esc(r.time_text)}</span>`:''}
         ${kindTag}
-        ${it.moved?`<span class="tag mv">原 ${esc(mdw(it.origin))} 挪來</span>`:''}
+        ${it.moved?`<span class="tag mv">原 ${esc(fmtDW(it.origin))} 挪來</span>`:''}
         ${r.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(r.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
@@ -4938,7 +4939,7 @@ function openTaskDetail(task){
     const di = dueInfo(t);
     return `${t.important?`<span class="tag imp">${STAR}重大事件</span>`:''}
       <span class="tag ${t.done?'did':DUE_CLS[di.k]}">${t.due_date
-        ? `截止 ${esc(fmtDate(t.due_date))}（週${WD[parseYmd(t.due_date).getDay()]}）`
+        ? `截止 ${esc(fmtDW(t.due_date))}`
         : '未定截止日'}</span>
       ${(!t.done && di.short)?`<span class="tag ${DUE_CLS[di.k]}">${esc(di.short)}</span>`:''}
       ${t.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(t.category)}</span>`:''}
@@ -4947,7 +4948,7 @@ function openTaskDetail(task){
   const ckHTML = t=>{
     const dd = taskDoneDate(t), left = daysToArchive(t);
     const sub = !t.done ? '完成後會先留在「近期任務」兩天，再移入「已完成」'
-      : dd ? `${fmtDate(dd)} 完成` + (left ? ` · 再 ${left} 天移入「已完成」` : ' · 已在「已完成」')
+      : dd ? `${fmtDW(dd)} 完成` + (left ? ` · 再 ${left} 天移入「已完成」` : ' · 已在「已完成」')
       : '已完成';
     return `<button class="dv-check ${t.done?'on':''}" id="dv-ck">
       <span class="ck ${t.done?'on':''}" style="pointer-events:none">${CK_SVG}</span>
@@ -5285,7 +5286,7 @@ function openDetail({kind, row, mode, date}){
       </span>
       <span style="flex:1">
         <span class="t" style="display:block">${dn?'已完成':'標記為完成'}</span>
-        <span class="s">${fmtDate(date)}</span>
+        <span class="s">${fmtDW(date)}</span>
       </span>
     </button>
     <div style="height:16px"></div>`;
@@ -5295,11 +5296,11 @@ function openDetail({kind, row, mode, date}){
     body += `<div class="dv-sec">
       <h3>這一次的日期</h3>
       <p class="mv-now">${mvMoved
-        ? `原本是 <span class="from">${esc(fmtDate(mvOrigin))}</span>，這次挪到 <b>${esc(fmtDate(date))}（${wdOf(date)}）</b>。`
-        : `<b>${esc(fmtDate(date))}（${wdOf(date)}）</b>。挪動只影響這一次，重複規則不會變。`}</p>
+        ? `原本是 <span class="from">${esc(fmtDW(mvOrigin))}</span>，這次挪到 <b>${esc(fmtDW(date))}</b>。`
+        : `<b>${esc(fmtDW(date))}</b>。挪動只影響這一次，重複規則不會變。`}</p>
       <div class="mv-act">
         <button class="btn" id="mv-open">${mvMoved?'改挪到別天':'這次挪到其他日期'}</button>
-        ${mvMoved?`<button class="btn" id="mv-reset">移回 ${esc(fmtDate(mvOrigin))}</button>`:''}
+        ${mvMoved?`<button class="btn" id="mv-reset">移回 ${esc(fmtDW(mvOrigin))}</button>`:''}
       </div>
       <div class="mv-pick hide" id="mv-pick">
         ${datePickerHTML()}
@@ -5393,8 +5394,8 @@ function openDetail({kind, row, mode, date}){
           const same = !t || t === date;          // 沒動就沒得移
           saveB.disabled = same;
           saveB.textContent = same ? '點一天來挪動'
-            : t === mvOrigin ? `移回 ${fmtDate(mvOrigin)}`
-            : `移到 ${fmtDate(t)}`;
+            : t === mvOrigin ? `移回 ${fmtDW(mvOrigin)}`
+            : `移到 ${fmtDW(t)}`;
         }
       });
       pick.scrollIntoView({block:'nearest'});
@@ -5407,13 +5408,13 @@ function openDetail({kind, row, mode, date}){
       if(!t || t === date) return;
       setMove(row, mvOrigin, t === mvOrigin ? null : t);
       jump(t);
-      toast(t === mvOrigin ? `已移回 ${fmtDate(mvOrigin)}` : `這次移到 ${fmtDate(t)}`);
+      toast(t === mvOrigin ? `已移回 ${fmtDW(mvOrigin)}` : `這次移到 ${fmtDW(t)}`);
     };
     const rs = $('#mv-reset', m.ov);
     if(rs) rs.onclick = ()=>{
       setMove(row, mvOrigin, null);
       jump(mvOrigin);
-      toast(`已移回 ${fmtDate(mvOrigin)}`);
+      toast(`已移回 ${fmtDW(mvOrigin)}`);
     };
   }
   const del = $('[data-del]', m.ov);
@@ -5720,11 +5721,11 @@ function wireDatePicker(R, { initial, single, onChange, blocked, dot }){
     sum.classList.toggle('multi', a.length > 1);
     if(!a.length){ sum.innerHTML = '請至少點選一天。'; return; }
     if(a.length === 1){
-      sum.innerHTML = `已選 <b>${esc(fmtDate(a[0]))}</b>（${wdOf(a[0])}）。`
+      sum.innerHTML = `已選 <b>${esc(fmtDW(a[0]))}</b>。`
         + (single ? '' : '再點其他天可以一次建立多筆。');
       return;
     }
-    const txt = a.map(mdDate).join('、');
+    const txt = a.map(fmtDW).join('、');
     sum.innerHTML = `已選 <b>${a.length} 天</b>：${esc(txt)}<br>會建立 ${a.length} 筆各自獨立的行程。`;
   };
 
@@ -5744,7 +5745,7 @@ function wireDatePicker(R, { initial, single, onChange, blocked, dot }){
       const busy = dot ? dot(ds) : 0;
       cells += `<button type="button" data-d="${ds}" aria-pressed="${on?'true':'false'}"
         ${blk?'disabled aria-disabled="true"':''}
-        aria-label="${esc(fmtDate(ds))}${blk?`，${esc(String(blk))}`:''}${busy?`，已有 ${busy} 筆行程`:''}"
+        aria-label="${esc(fmtDW(ds))}${blk?`，${esc(String(blk))}`:''}${busy?`，已有 ${busy} 筆行程`:''}"
         class="${d.getMonth()!==m?'out':''} ${ds===today?'today':''} ${on?'on':''} ${blk?'blk':''}"
         >${d.getDate()}${busy?'<i></i>':''}</button>`;
     }
@@ -6181,10 +6182,10 @@ function openImportPreview(p, label){
     `<div class="drow"><span class="tag time">${esc(whenLabel(s))}</span>
        <span class="dmain" style="cursor:default"><span class="dt">${esc(s.title)}</span></span></div>`
   ).join('') + p.events.map(e=>
-    `<div class="drow"><span class="tag time">${esc(fmtDate(e.date))}</span>
+    `<div class="drow"><span class="tag time">${esc(fmtDW(e.date))}</span>
        <span class="dmain" style="cursor:default"><span class="dt">${esc(e.title)}</span></span></div>`
   ).join('') + (p.tasks||[]).map(t=>
-    `<div class="drow"><span class="tag time">${t.due_date?esc(fmtDate(t.due_date)):'無截止日'}</span>
+    `<div class="drow"><span class="tag time">${t.due_date?esc(fmtDW(t.due_date)):'無截止日'}</span>
        <span class="dmain" style="cursor:default"><span class="dt">${esc(t.title)}</span></span></div>`
   ).join('');
   const dupe = p.schedules.filter(s=>state.schedules.some(x=>x.id===s.id)).length
