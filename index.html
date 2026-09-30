@@ -1052,7 +1052,9 @@ html.no-intro #intro{display:none}
 html.intro-on #ptitle, html.intro-on .ptitle-zh, html.intro-on .auth-title, html.intro-on .setup-brand{visibility:hidden}
 
 /* 標頭的英中標題（只有打字機看得到） */
-.tw-ttl{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1 1 auto;overflow:hidden}
+.tw-ttl{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1 1 auto;overflow:hidden;
+  /* 行高 = 字級，g／p 的下緣會掉出框外被 overflow 裁掉；底部墊 10px 讓它有地方畫，負邊距把版面位置扣回來（標題不會因此往上跑） */
+  padding-bottom:10px;margin-bottom:-10px}
 .ptitle{margin:0;flex:none;font-size:26px;line-height:1;color:var(--ink)}
 @media(min-width:760px){.ptitle{font-size:30px}}
 .ptitle-zh{font:600 16px/1 var(--cjk, system-ui);color:var(--ink2);letter-spacing:.06em;
@@ -1124,7 +1126,8 @@ html[data-skin="typewriter"] .menu{top:calc(var(--tw-hdr) + env(safe-area-inset-
 
 /* ---------- 導覽：純文字分頁，選中＝反白塊（滑動的那顆 .nav-ind 也是反白塊） ---------- */
 html[data-skin="typewriter"] .nav{background:none;border:0;border-radius:0;padding:0;gap:6px}
-html[data-skin="typewriter"] .nav button{flex:0 0 auto;height:34px;padding:0 12px;border-radius:0;gap:0;
+/* 四顆等寬等高（最長的「重複排程」＝4 個字寬決定寬度；不等寬的話反白塊會隨字數忽大忽小） */
+html[data-skin="typewriter"] .nav button{flex:0 0 auto;width:88px;height:34px;padding:0;border-radius:0;gap:0;
   font:600 14px/1 var(--font);color:var(--ink2);box-shadow:none}
 html[data-skin="typewriter"] .nav button svg{display:none}
 html[data-skin="typewriter"] .nav button:hover{color:var(--ink)}
@@ -1140,7 +1143,7 @@ html[data-skin="typewriter"] .nav button::after{border-radius:0}
   html[data-skin="typewriter"] .nav{position:fixed;left:0;right:0;bottom:0;z-index:44;justify-content:center;gap:6px;
     background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none;border:0;box-shadow:none;
     padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
-  html[data-skin="typewriter"] .nav button{height:44px;font-size:14px;padding:0 14px}
+  html[data-skin="typewriter"] .nav button{height:44px;font-size:14px;padding:0;width:auto;flex:1 1 0;min-width:0;max-width:96px}
   html[data-skin="typewriter"] .nav button.on{background:var(--inv-bg)}
   html[data-skin="typewriter"] .nav.ind-run button.on{background:transparent}
   html[data-skin="typewriter"] .nav-ind>span{background:var(--inv-bg)}
@@ -1309,7 +1312,9 @@ html[data-skin="typewriter"] .dots i::before{content:"•"}
 html[data-skin="typewriter"] .dots i.evt::before{content:"○"}
 html[data-skin="typewriter"] .dots i.tsk::before{content:"×";font-size:1.2em;line-height:.95}
 html[data-skin="typewriter"] .dots i.imp{color:var(--ink) !important}
-html[data-skin="typewriter"] .dots i.imp::before{content:"";display:inline-block;width:.34em;height:.92em;background:currentColor;vertical-align:-.1em}
+/* ▮ 一律 1em 字級：不這樣的話「重大的任務」會吃到上面 .tsk 的 1.2em，長方形比重大的行程／排程高一截 */
+html[data-skin="typewriter"] .dots i.imp::before{content:"";display:inline-block;font-size:1em;line-height:1;
+  width:.34em;height:.92em;background:currentColor;vertical-align:-.1em}
 html[data-skin="typewriter"] .dots i.done, html[data-skin="typewriter"] .dots i.imp.done{opacity:.16}
 /* 多日行程＝細線（按鈕仍是 6px 高、好點，線畫在中間 2px）；重大的加粗成 4px */
 html[data-skin="typewriter"] .bar-ev, html[data-skin="typewriter"] .bar-ev.openL, html[data-skin="typewriter"] .bar-ev.openR{
@@ -1320,7 +1325,7 @@ html[data-skin="typewriter"] .bar-ev.done, html[data-skin="typewriter"] .bar-ev.
 html[data-skin="typewriter"] .sym{display:inline-block;flex:none;font:400 1em/1 var(--mono);font-style:normal;color:var(--ink2)}
 html[data-skin="typewriter"] .sym-rec::before{content:"•"}
 html[data-skin="typewriter"] .sym-evt::before{content:"○"}
-html[data-skin="typewriter"] .sym-tsk::before{content:"×"}
+html[data-skin="typewriter"] .sym-tsk::before{content:"×";font-size:1.25em;line-height:.8}
 html[data-skin="typewriter"] .sym-bar::before{content:"──"}
 html[data-skin="typewriter"] .drow.done .sym{opacity:.16}
 /* 重大事件的標記（標題前、篩選列的「重大」、詳細內容的徽章…）：星號改成 ▮，跟格子裡、圖例上的記號同一個形狀。
@@ -1336,7 +1341,7 @@ html[data-skin="typewriter"] .cchip.done, html[data-skin="typewriter"] .cchip.ev
   background:none;box-shadow:none;border-radius:0;padding:0;font:400 11.5px/1.45 var(--font);color:var(--ink2)}
 html[data-skin="typewriter"] .cchip::before{content:"•";color:var(--ink2);margin-right:.6ch;font:400 1em/1 var(--mono)}
 html[data-skin="typewriter"] .cchip.evt::before{content:"○"}
-html[data-skin="typewriter"] .cchip.tsk::before{content:"×"}
+html[data-skin="typewriter"] .cchip.tsk::before{content:"×";font-size:1.2em}
 html[data-skin="typewriter"] .cchip.imp::before{content:"";display:inline-block;width:.3em;height:.85em;background:var(--ink);
   margin:0 .8ch 0 .2ch;vertical-align:-.08em}
 html[data-skin="typewriter"] .cchip.done{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted)}
@@ -1359,7 +1364,7 @@ html[data-skin="typewriter"] .legend .lg-dot, html[data-skin="typewriter"] .lege
   transform:none;background:none;-webkit-mask:none;mask:none;opacity:1;font:400 11px/1 var(--mono);color:var(--muted)}
 html[data-skin="typewriter"] .legend .lg-dot::before{content:"•"}
 html[data-skin="typewriter"] .legend .lg-dot.evt::before{content:"○"}
-html[data-skin="typewriter"] .legend .lg-dot.tsk::before{content:"×"}
+html[data-skin="typewriter"] .legend .lg-dot.tsk::before{content:"×";font-size:1.25em;line-height:.8}
 html[data-skin="typewriter"] .legend .lg-dot.imp::before{content:"";display:inline-block;width:.34em;height:.92em;background:var(--ink);vertical-align:-.1em}
 html[data-skin="typewriter"] .legend .lg-bar::before{content:"──"}
 
@@ -2164,6 +2169,8 @@ const addDays = (s,n) => { const d=parseYmd(s); d.setDate(d.getDate()+n); return
 const fmtDate = s => { const d=parseYmd(s); return `${d.getMonth()+1} 月 ${d.getDate()} 日`; };
 const mdDate  = s => { const d=parseYmd(s); return `${d.getMonth()+1}/${d.getDate()}`; };
 const wdOf    = s => `週${WD[parseYmd(s).getDay()]}`;
+/** 清單、標籤裡的日期一律這個格式：11/10 週二（詳細內容與對話框裡的完整句子仍寫「11 月 10 日」） */
+const mdw     = s => `${mdDate(s)} ${wdOf(s)}`;
 
 /* ---------- 圖示 ----------
    全站只用畫出來的 SVG，統一 24 格線、圓端點；不用 ★ ▸ ✓ 這類符號字，
@@ -2483,9 +2490,9 @@ function whenLabel(s){
 /** 起訖日文字，沒有結束日就只寫起始 */
 function rangeLabel(s){
   if(!s.start_date && !s.end_date) return '';
-  const a = s.start_date ? fmtDate(s.start_date) : '';
+  const a = s.start_date ? mdDate(s.start_date) : '';
   if(!s.end_date) return a ? `${a} 起` : '';
-  return `${a} – ${fmtDate(s.end_date)}`;
+  return `${a} – ${mdDate(s.end_date)}`;
 }
 /* ---------- 單一行程（可跨多日） ---------- */
 function eventEnd(e){ return e.end_date && e.end_date > e.date ? e.end_date : e.date; }
@@ -2584,11 +2591,11 @@ function daysToArchive(t){
 function dueInfo(t){
   if(!t.due_date) return { k:'none', short:'', label:'未定截止日' };
   const k = diffDays(t.due_date, todayStr());
-  if(k <  0) return { k:'late',  short:`逾期 ${-k} 天`, label:`逾期 ${-k} 天 · ${fmtDate(t.due_date)}` };
+  if(k <  0) return { k:'late',  short:`逾期 ${-k} 天`, label:`逾期 ${-k} 天 · ${mdw(t.due_date)}` };
   if(k === 0) return { k:'today', short:'今天到期',   label:'今天到期' };
-  if(k === 1) return { k:'soon',  short:'明天到期',   label:`明天到期 · ${fmtDate(t.due_date)}` };
-  if(k <=  7) return { k:'soon',  short:`${k} 天後`,  label:`${k} 天後 · ${fmtDate(t.due_date)}` };
-  return { k:'far', short:'', label:fmtDate(t.due_date) };
+  if(k === 1) return { k:'soon',  short:'明天到期',   label:`明天到期 · ${mdw(t.due_date)}` };
+  if(k <=  7) return { k:'soon',  short:`${k} 天後`,  label:`${k} 天後 · ${mdw(t.due_date)}` };
+  return { k:'far', short:'', label:mdw(t.due_date) };
 }
 const taskBucket = t => t.done ? 'did' : dueInfo(t).k;
 /** 未完成：重大 → 截止日早的 → 標題 */
@@ -3343,8 +3350,8 @@ function nextStubHTML(s){
   const d = nextOccurrence(s);
   if(!d) return '';
   const k = diffDays(d, todayStr());
-  const rel = k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : k < 14 ? `${k} 天後` : mdDate(d);
-  return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(mdDate(d))} ${esc(wdOf(d))}">下次 ${rel}</span>`;
+  const rel = k === 0 ? '今天' : k === 1 ? '明天' : k === 2 ? '後天' : k < 14 ? `${k} 天後` : mdw(d);
+  return `<i class="lead tw-only" aria-hidden="true"></i><span class="nx tw-only${k===0?' today':''}" title="下次 ${esc(mdw(d))}">下次 ${rel}</span>`;
 }
 
 function itemCardHTML(s){
@@ -3357,9 +3364,9 @@ function itemCardHTML(s){
       <span class="ti">${s.important?STAR:''}${esc(s.title)}</span>
       <span class="mt">
         <span class="tag time">${esc(whenLabel(s))}${s.time_text?' · '+esc(s.time_text):''}</span>
-        ${ended?`<span class="tag over">已結束 ${esc(fmtDate(s.end_date))}</span>`
+        ${ended?`<span class="tag over">已結束 ${esc(mdw(s.end_date))}</span>`
           :pending?`<span class="tag soon">${esc(rangeLabel(s))}</span>`
-          :s.end_date?`<span class="tag">至 ${esc(fmtDate(s.end_date))}</span>`:''}
+          :s.end_date?`<span class="tag">至 ${esc(mdw(s.end_date))}</span>`:''}
         ${s.category?`<span class="tag"><i class="cd" style="background:${catColor(s.category)};color:${catColor(s.category)}"></i>${esc(s.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
@@ -4583,7 +4590,7 @@ function renderDay(){
       ? `<span class="tag ev">${it.span>1?`${SYM('bar')}多日行程 第 ${it.dayIndex}/${it.span} 天`:`${SYM('evt')}單一行程`}</span>`
       : tk ? `<span class="tag tk">${SYM('tsk')}近期任務 · 當日截止</span>`
       : `<span class="tag">${SYM('rec')}${esc(whenLabel(r))}</span>`)
-      + (it.moved ? `<span class="tag mv">原 ${esc(mdDate(it.origin))} 挪來</span>` : '');
+      + (it.moved ? `<span class="tag mv">原 ${esc(mdw(it.origin))} 挪來</span>` : '');
     // 子事項完成度：排程／行程是「那一天」的，任務是它自己的
     const sp = tk ? taskProgress(r) : subProgress(r, ds);
     const pips = tk ? taskSubs(r).map(x=>`<i class="${x.done?'on':''}"></i>`)
@@ -4660,7 +4667,7 @@ function taskCardHTML(t, mark){
       ${(!t.done && nx)?`<span class="nextsub">${SVG(IC.next)}<em>${esc(nx.title)}</em></span>`:''}
       <span class="mt">
         ${t.done
-          ? `<span class="tag did">${SVG(IC.check)}${dd?esc(fmtDate(dd))+' 完成':'已完成'}</span>`
+          ? `<span class="tag did">${SVG(IC.check)}${dd?esc(mdw(dd))+' 完成':'已完成'}</span>`
           : `<span class="tag ${DUE_CLS[di.k]}">${mark?SYM('tsk'):''}${esc(di.label)}</span>`}
         ${t.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(t.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
@@ -4824,13 +4831,14 @@ function cmpPend(a, b){
   if(ta !== tb) return ta.localeCompare(tb);
   return String(a.row.title).localeCompare(String(b.row.title));
 }
-/** 這一次落在哪天：逾期／今天／明天／M/D 週X */
+/** 這一次落在哪天：跟任務的 dueInfo() 同一套寫法（逾期 N 天 · 日期／今天／明天 · 日期／N 天後 · 日期／日期） */
 function pendWhen(date){
   const k = diffDays(date, todayStr());
-  if(k < 0) return `逾期 ${-k} 天 · ${mdDate(date)} ${wdOf(date)}`;
+  if(k < 0) return `逾期 ${-k} 天 · ${mdw(date)}`;
   if(k === 0) return '今天';
-  if(k === 1) return `明天 · ${mdDate(date)}`;
-  return `${mdDate(date)} ${wdOf(date)}`;
+  if(k === 1) return `明天 · ${mdw(date)}`;
+  if(k <= 7) return `${k} 天後 · ${mdw(date)}`;
+  return mdw(date);
 }
 
 /** 某天的某筆排程／行程（任務直接用 taskCardHTML，同一張卡） */
@@ -4850,7 +4858,7 @@ function occCardHTML(it, dueCls){
         <span class="tag ${dueCls}">${SYM(ev ? (it.span > 1 ? 'bar' : 'evt') : 'rec')}${esc(pendWhen(it.date))}</span>
         ${r.time_text?`<span class="tag time">${esc(r.time_text)}</span>`:''}
         ${kindTag}
-        ${it.moved?`<span class="tag mv">原 ${esc(mdDate(it.origin))} 挪來</span>`:''}
+        ${it.moved?`<span class="tag mv">原 ${esc(mdw(it.origin))} 挪來</span>`:''}
         ${r.category?`<span class="tag"><i class="cd" style="background:${col};color:${col}"></i>${esc(r.category)}</span>`:''}
         ${links.length?`<span class="tag lk">${SVG(IC.link)}連結 ${links.length}</span>`:''}
       </span>
