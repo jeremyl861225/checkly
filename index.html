@@ -6799,10 +6799,13 @@ function setPage(p){
   $('#p-pend').classList.toggle('hide', p!=='pend');
   $('#p-done').classList.toggle('hide', p!=='done');
   $('#p-ended').classList.toggle('hide', p!=='ended');
-  $('#fab').classList.toggle('hide', p==='done' || p==='ended');
+  // 未完成頁只用來清點、勾掉，不在這裡新增；已完成／已結束是歸檔子頁，也不新增
+  $('#fab').classList.toggle('hide', p==='done' || p==='ended' || p==='pend');
   const fabT = $('#fab-t');
-  const fabLabel = (p==='list' || p==='ended') ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';   // 任務頁與未完成頁都是新增任務
   const fabCur = fabT._twTo != null ? fabT._twTo : fabT.textContent;
+  // 未完成頁的 FAB 藏著，字維持原樣：回到原本那一頁時才不會白白跳一次字
+  const fabLabel = p==='pend' ? fabCur
+    : (p==='list' || p==='ended') ? '新增排程' : p==='cal' ? '新增行程' : '新增任務';
   if(fabCur !== fabLabel && moving && isTypewriter()) twScr(fabT, fabLabel, { duration: 380 });   // 打字機：FAB 的字跳成新字
   else if(fabCur !== fabLabel){
     twScrStop(fabT);
@@ -7235,7 +7238,7 @@ async function startApp(){
   $('#btn-menu').onclick = e=>{ e.stopPropagation(); openMenu(); };
   $('#fab').onclick = ()=>{
     if(state.page==='list') openScheduleForm(null);
-    else if(state.page==='task' || state.page==='pend') openTaskForm(null);
+    else if(state.page==='task') openTaskForm(null);
     else openEventForm(null, state.selDate);
   };
   $('#go-done').onclick   = ()=>setPage('done');
